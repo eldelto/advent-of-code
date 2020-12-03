@@ -1,4 +1,4 @@
-package net.eldelto.aof.`2020`
+package net.eldelto.aof.`2020`.`01`
 
 fun main() {
   val result = process(inputToList(input))
