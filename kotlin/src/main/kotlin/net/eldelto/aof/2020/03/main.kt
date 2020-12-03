@@ -21,7 +21,7 @@ fun main() {
   )
 
   val result = slopes.map { traverseMap(map, it) }
-    .reduce{ a, b -> a*b}
+    .reduce { a, b -> a * b }
   println("Scenario 2 result: $result")
 }
 
@@ -29,8 +29,8 @@ fun traverseMap(map: Map, slope: Point): Int {
   var treeCount = 0
 
   var point = slope
-  while(true) {
-    when(map.getTileAt(point)) {
+  while (true) {
+    when (map.getTileAt(point)) {
       Tile.TREE -> treeCount++
       Tile.OUT -> break
     }
