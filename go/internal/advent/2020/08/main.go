@@ -44,10 +44,6 @@ func fixBootCode(input string) (Interpreter, error) {
 	changeCursor := 0
 	for {
 		interpreter := parseProgram(input)
-		if changeCursor >= len(interpreter.Program) {
-			return Interpreter{}, fmt.Errorf("unfixable boot code")
-		}
-
 		for ; changeCursor < len(interpreter.Program); changeCursor++ {
 			op := interpreter.Program[changeCursor]
 			switch op.Type {
