@@ -25,6 +25,8 @@ func main() {
 	// Scenario 2
 	result2 := calculateResult2(buses)
 	fmt.Printf("Scenario 2 result: %d\n", result2)
+
+	fmt.Println((0 + 3876 + 5304) % 4199)
 }
 
 func parseInput(input string) (int, []Bus) {
@@ -148,13 +150,13 @@ const input = `1008141
 	pp1 = 323
 	pp2 = 221
 
-	inv0 = 2  // 247*2 % 17 = 1
-	inv1 = 6  // 323*6 % 13 = 1
+	inv0 = 2	// 247*2 % 17 = 1
+	inv1 = 6	// 323*6 % 13 = 1
 	inv2 = 8	// 221*8 % 19 = 1
 
 	y0 = 0*247*2 = 0
 	y1 = 2*323*6 = 3876
 	y2 = 3*221*8 = 5304
 
-	x = (0 + 3876 + 5304) % 4199 =
+	x = (0 + 3876 + 5304) % 4199 = 782
 */
