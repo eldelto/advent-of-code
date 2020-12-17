@@ -19,6 +19,17 @@ func main() {
 	machine := NewBitmaskMachine()
 	runProgram(machine, ops)
 	fmt.Printf("Scenario 1 result: %d\n", machine.GetMemorySum())
+
+	// Example 2
+	exampleOps2 := parseInput(exampleInput2)
+	exampleMachine2 := NewBitmaskMachineV2()
+	runProgram(exampleMachine2, exampleOps2)
+	fmt.Printf("Example 2 result: %d\n", exampleMachine2.GetMemorySum())
+
+	// Scenario 2
+	machineV2 := NewBitmaskMachineV2()
+	runProgram(machineV2, ops)
+	fmt.Printf("Scenario 2 result: %d\n", machineV2.GetMemorySum())
 }
 
 func parseInput(input string) []Operation {
@@ -59,7 +70,7 @@ func parseInput(input string) []Operation {
 	return ops
 }
 
-func runProgram(machine *BitmaskMachine, program []Operation) {
+func runProgram(machine Bitmasker, program []Operation) {
 	for _, op := range program {
 		switch op.Type {
 		case WriteToMemory:
@@ -87,6 +98,10 @@ type Operation struct {
 
 type Memory map[uint64]uint64
 
+type Bitmasker interface {
+	SetBitmask(string) error
+	WriteToMemory(address, value uint64)
+}
 type BitmaskMachine struct {
 	memory   Memory
 	lowMask  uint64
@@ -124,7 +139,7 @@ func (bm *BitmaskMachine) SetBitmask(rawBitmask string) error {
 	return nil
 }
 
-func (bm *BitmaskMachine) WriteToMemory(address uint64, value uint64) {
+func (bm *BitmaskMachine) WriteToMemory(address, value uint64) {
 	bm.memory[address] = bm.applyBitmask(value)
 }
 
@@ -141,10 +156,90 @@ func (bm *BitmaskMachine) applyBitmask(value uint64) uint64 {
 	return (value & bm.lowMask) | bm.highMask
 }
 
+type BitmaskMachineV2 struct {
+	memory   Memory
+	highMask uint64
+	rawMask  string
+}
+
+func NewBitmaskMachineV2() *BitmaskMachineV2 {
+	return &BitmaskMachineV2{
+		memory:   map[uint64]uint64{},
+		highMask: 0,
+		rawMask:  "",
+	}
+}
+
+func (bm *BitmaskMachineV2) SetBitmask(rawBitmask string) error {
+	if len(rawBitmask) != 36 {
+		return fmt.Errorf("bitmask must be 36 chars long but was: %d", len(rawBitmask))
+	}
+
+	newHighMask := uint64(0)
+	for i, r := range rawBitmask {
+		shift := 35 - i
+		if r == '1' {
+			newHighMask |= (1 << shift)
+		}
+	}
+
+	bm.highMask = newHighMask
+	bm.rawMask = rawBitmask
+
+	return nil
+}
+
+func (bm *BitmaskMachineV2) WriteToMemory(address, value uint64) {
+	addresses := bm.applyBitmask(address)
+	for _, a := range addresses {
+		bm.memory[a] = value
+	}
+}
+
+func (bm *BitmaskMachineV2) GetMemorySum() uint64 {
+	sum := uint64(0)
+	for _, v := range bm.memory {
+		sum += v
+	}
+
+	return sum
+}
+
+func (bm *BitmaskMachineV2) applyBitmask(address uint64) []uint64 {
+	newAddress := address | bm.highMask
+
+	return applyMemoryDecoder(newAddress, bm.rawMask, 0)
+}
+
+func applyMemoryDecoder(address uint64, rawBitmask string, cursor int) []uint64 {
+	if cursor >= len(rawBitmask) {
+		return []uint64{address}
+	}
+
+	if rawBitmask[cursor] != 'X' {
+		return applyMemoryDecoder(address, rawBitmask, cursor+1)
+	}
+
+	shift := 35 - cursor
+	mask := uint64(1) << shift
+
+	otherAddress := address ^ mask
+
+	addresses0 := applyMemoryDecoder(address, rawBitmask, cursor+1)
+	addresses1 := applyMemoryDecoder(otherAddress, rawBitmask, cursor+1)
+
+	return append(addresses0, addresses1...)
+}
+
 const exampleInput = `mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXX0X
 mem[8] = 11
 mem[7] = 101
 mem[8] = 0`
+
+const exampleInput2 = `mask = 000000000000000000000000000000X1001X
+mem[42] = 100
+mask = 00000000000000000000000000000000X0XX
+mem[26] = 1`
 
 const input = `mask = 00X10101X110010011XX0X011X100000X010
 mem[13197] = 47579321
