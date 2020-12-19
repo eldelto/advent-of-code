@@ -14,10 +14,18 @@ func main() {
 	fmt.Printf("Example result: %d\n", exampleResult)
 
 	// Scenario 1
-	validator, _, tickets := parseInput(input)
+	validator, myTicket, tickets := parseInput(input)
 	result := calculateErrorRate(validator, tickets)
 	fmt.Printf("Scenario 1 result: %d\n", result)
 
+	// Example 2
+	exampleValidator2, myExampleTicket2, exampleTickets2 := parseInput(exampleInput2)
+	exampleResult2 := calculateResult2(exampleValidator2, myExampleTicket2, exampleTickets2)
+	fmt.Printf("Example 2 result: %d\n", exampleResult2)
+
+	// Scenario 2
+	result2 := calculateResult2(validator, myTicket, tickets)
+	fmt.Printf("Scenario 2 result: %d\n", result2)
 }
 
 func calculateErrorRate(validator TicketValidator, tickets []Ticket) int {
@@ -34,13 +42,37 @@ func calculateErrorRate(validator TicketValidator, tickets []Ticket) int {
 	return errorRate
 }
 
+func calculateResult2(validator TicketValidator, myTicket Ticket, tickets []Ticket) int {
+	validTickets := validator.FilterInvalidTickets(tickets)
+	rules, err := validator.FindValidationRuleOrder(validTickets)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Rule Order: %v\n", rules)
+	product := 1
+	for i, rule := range rules {
+		if strings.Contains(rule.Name, "departure") {
+			product *= myTicket.Values[i]
+		}
+	}
+
+	return product
+}
+
 func parseInput(input string) (TicketValidator, Ticket, []Ticket) {
 	parts := strings.Split(input, "\n\n")
 
 	rules := parseValidationRules(parts[0])
+	myTicket := parseMyTicket(parts[1])
 	nearbyTickets := parseTickets(parts[2])
 
-	return TicketValidator{rules}, Ticket{}, nearbyTickets
+	return TicketValidator{rules}, myTicket, nearbyTickets
+}
+
+func parseMyTicket(input string) Ticket {
+	parts := strings.Split(input, "\n")
+	return parseTicket(parts[1])
 }
 
 func parseTickets(input string) []Ticket {
@@ -155,6 +187,105 @@ Outer:
 	return values
 }
 
+func (tv *TicketValidator) FindValidationRuleOrder(tickets []Ticket) ([]ValidationRule, error) {
+	possibleRuleOrder, err := tv.findPossibleValidationRuleOrder(tickets)
+	if err != nil {
+		return nil, err
+	}
+
+	ruleOrder := make([]ValidationRule, len(possibleRuleOrder))
+	fixedRules := []ValidationRule{}
+	deltaLen := 1
+	for deltaLen > 0 {
+		oldLen := len(fixedRules)
+		for i, rules := range possibleRuleOrder {
+			ruleDiff := getRuleDiff(rules, fixedRules)
+			if len(ruleDiff) == 1 {
+				fixedRules = append(fixedRules, ruleDiff[0])
+				ruleOrder[i] = ruleDiff[0]
+			}
+		}
+		deltaLen = len(fixedRules) - oldLen
+	}
+
+	return ruleOrder, nil
+}
+
+func getRuleDiff(rules0, rules1 []ValidationRule) []ValidationRule {
+	diff := []ValidationRule{}
+Outer:
+	for _, r0 := range rules0 {
+		for _, r1 := range rules1 {
+			if r0.Name == r1.Name {
+				continue Outer
+			}
+		}
+		diff = append(diff, r0)
+	}
+
+	return diff
+}
+
+func (tv *TicketValidator) findPossibleValidationRuleOrder(tickets []Ticket) ([][]ValidationRule, error) {
+	rules := [][]ValidationRule{}
+	for i := range tickets[0].Values {
+		possibleRules := tv.findMatchingRulesForValue(tickets, i)
+		if len(possibleRules) == 0 {
+			return nil, fmt.Errorf("no matching rule found for index: %d", i)
+		}
+
+		rules = append(rules, possibleRules)
+	}
+
+	return rules, nil
+}
+
+func (tv *TicketValidator) findMatchingRulesForValue(tickets []Ticket, valueIndex int) []ValidationRule {
+	validRules := []ValidationRule{}
+	for _, rule := range tv.RuleSet {
+		if isValidForAllTickets(rule, tickets, valueIndex) {
+			validRules = append(validRules, rule)
+		}
+	}
+
+	return validRules
+}
+
+func isValidForAllTickets(rule ValidationRule, tickets []Ticket, valueIndex int) bool {
+	for _, ticket := range tickets {
+		if !rule.IsValid(ticket.Values[valueIndex]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (tv *TicketValidator) IsValid(ticket Ticket) bool {
+Outer:
+	for _, value := range ticket.Values {
+		for _, rule := range tv.RuleSet {
+			if rule.IsValid(value) {
+				continue Outer
+			}
+		}
+		return false
+	}
+
+	return true
+}
+
+func (tv *TicketValidator) FilterInvalidTickets(tickets []Ticket) []Ticket {
+	validTickets := []Ticket{}
+	for _, ticket := range tickets {
+		if tv.IsValid(ticket) {
+			validTickets = append(validTickets, ticket)
+		}
+	}
+
+	return validTickets
+}
+
 const exampleInput = `class: 1-3 or 5-7
 row: 6-11 or 33-44
 seat: 13-40 or 45-50
@@ -167,6 +298,18 @@ nearby tickets:
 40,4,50
 55,2,20
 38,6,12`
+
+const exampleInput2 = `class: 0-1 or 4-19
+row: 0-5 or 8-19
+seat: 0-13 or 16-19
+
+your ticket:
+11,12,13
+
+nearby tickets:
+3,9,18
+15,1,5
+5,14,9`
 
 const input = `departure location: 48-793 or 800-971
 departure station: 36-235 or 247-974
