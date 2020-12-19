@@ -8,25 +8,25 @@ import (
 func main() {
 
 	// Example
-	exampleState := parseVec3Input(exampleInput)
+	exampleState := parseInput(exampleInput, vec3Maker)
 	exampleDimension := NewPocketDimension(exampleState)
 	runCycles(exampleDimension, 6)
 	fmt.Printf("Example result: %d\n", exampleDimension.GetActiveCubeCount())
 
 	// Scenario 1
-	state := parseVec3Input(input)
+	state := parseInput(input, vec3Maker)
 	dimension := NewPocketDimension(state)
 	runCycles(dimension, 6)
 	fmt.Printf("Scenario 1 result: %d\n", dimension.GetActiveCubeCount())
 
 	// Example 2
-	exampleState2 := parseVec4Input(exampleInput)
+	exampleState2 := parseInput(exampleInput, vec4Maker)
 	exampleDimension2 := NewPocketDimension(exampleState2)
 	runCycles(exampleDimension2, 6)
 	fmt.Printf("Example 2 result: %d\n", exampleDimension2.GetActiveCubeCount())
 
 	// Scenario 2
-	state2 := parseVec4Input(input)
+	state2 := parseInput(input, vec4Maker)
 	dimension2 := NewPocketDimension(state2)
 	runCycles(dimension2, 6)
 	fmt.Printf("Scenario 2 result: %d\n", dimension2.GetActiveCubeCount())
@@ -38,38 +38,23 @@ func runCycles(dimension *PocketDimension, count int) {
 	}
 }
 
-func parseVec3Input(input string) map[Vec]Cube {
-	cubes := map[Vec]Cube{}
+type VecMaker func(x, y int) Vec
 
-	rows := strings.Split(input, "\n")
-	for y, row := range rows {
-		for x, r := range row {
-			vec := Vec3{x, y, 0}
-
-			var cube Cube
-			switch r {
-			case '#':
-				cube = Cube{true}
-			case '.':
-				cube = Cube{false}
-			default:
-				panic(fmt.Errorf("not a valid cube state: %c", r))
-			}
-
-			cubes[vec] = cube
-		}
-	}
-
-	return cubes
+func vec3Maker(x, y int) Vec {
+	return Vec3{x, y, 0}
 }
 
-func parseVec4Input(input string) map[Vec]Cube {
+func vec4Maker(x, y int) Vec {
+	return Vec4{x, y, 0, 0}
+}
+
+func parseInput(input string, vecMaker VecMaker) map[Vec]Cube {
 	cubes := map[Vec]Cube{}
 
 	rows := strings.Split(input, "\n")
 	for y, row := range rows {
 		for x, r := range row {
-			vec := Vec4{x, y, 0, 0}
+			vec := vecMaker(x, y)
 
 			var cube Cube
 			switch r {
