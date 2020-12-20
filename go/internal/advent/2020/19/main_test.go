@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 )
@@ -62,11 +61,26 @@ func Test_parseInput(t *testing.T) {
 		3: 4 5 | 5 4
 		4: "a"
 		5: "b"`, "aaabbb", false},
+		{`0: 1
+		1: 3 | 2 1
+		2: "a"
+		3: "b"`, "b", true},
+		{`0: 1
+		1: 3 | 2 1
+		2: "a"
+		3: "b"`, "ab", true},
+		{`0: 1
+		1: 3 2 | 3 1 2
+		2: "a"
+		3: "b"`, "ba", true},
+		{`0: 1
+		1: 3 2 | 3 1 2
+		2: "a"
+		3: "b"`, "bbaa", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			fsm, _ := parseInput(tt.rules)
-			fmt.Println(fsm)
 			got := matchInput(fsm, tt.input)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseInput() got = %v, want %v", got, tt.want)

@@ -14,9 +14,13 @@ func main() {
 
 	// Scenario 1
 	machine, inputs := parseInput(input)
-	fmt.Println("Parsed!")
 	result := countMatches(machine, inputs)
 	fmt.Printf("Scenario 1 result: %d\n", result)
+
+	// Example 2
+	exampleMachine2, exampleInputs2 := parseInput(exampleInput2)
+	exampleResult2 := countMatches(exampleMachine2, exampleInputs2)
+	fmt.Printf("Example 2 result: %d\n", exampleResult2)
 }
 
 func countMatches(machine FSM, inputs []string) int {
@@ -26,6 +30,9 @@ func countMatches(machine FSM, inputs []string) int {
 		if matchInput(machine, v) {
 			sum++
 		}
+		// else {
+		// 	fmt.Println("no match: " + v)
+		// }
 	}
 
 	return sum
@@ -86,18 +93,16 @@ func parseRune(rule string) FSM {
 }
 
 func parseConcat(rules map[string]string, rule string) FSM {
-	return NewLazyStateMachine(func() FSM {
-		rule = strings.TrimSpace(rule)
-		ids := strings.Split(rule, " ")
+	rule = strings.TrimSpace(rule)
+	ids := strings.Split(rule, " ")
 
-		machines := []FSM{}
-		for _, id := range ids {
-			fsm := parseRecursiveFSM(rules, id)
-			machines = append(machines, fsm)
-		}
+	machines := []FSM{}
+	for _, id := range ids {
+		fsm := parseRecursiveFSM(rules, id)
+		machines = append(machines, fsm)
+	}
 
-		return NewConcatStateMachine(machines...)
-	})
+	return NewConcatStateMachine(machines...)
 }
 
 func matchInput(machine FSM, input string) bool {
@@ -161,11 +166,7 @@ func (sm *LazyStateMachine) Transition(event Event) error {
 }
 
 func (sm *LazyStateMachine) Reset() {
-	if sm.machine == nil {
-		sm.machine = sm.builder()
-	}
-
-	sm.machine.Reset()
+	sm.machine = nil
 }
 
 func (sm *LazyStateMachine) String() string {
@@ -247,26 +248,23 @@ func (sm *ConcatStateMachine) IsAccepting() bool {
 func (sm *ConcatStateMachine) Transition(event Event) error {
 	machine := sm.stateMachines[sm.machineCursor]
 
-	err := machine.Transition(event)
-	if err == nil {
-		return nil
-	}
-
-	if sm.machineCursor+1 >= len(sm.stateMachines) {
+	if err := machine.Transition(event); err != nil {
 		return err
 	}
 
-	sm.machineCursor++
-	machine = sm.stateMachines[sm.machineCursor]
+	if machine.IsAccepting() && sm.machineCursor+1 < len(sm.stateMachines) {
+		sm.machineCursor++
+	}
 
-	return machine.Transition(event)
+	return nil
 }
 
 func (sm *ConcatStateMachine) Reset() {
-	sm.machineCursor = 0
-	for _, machine := range sm.stateMachines {
-		machine.Reset()
+	for i := sm.machineCursor; i >= 0; i-- {
+		sm.stateMachines[i].Reset()
 	}
+
+	sm.machineCursor = 0
 }
 
 func (sm *ConcatStateMachine) String() string {
@@ -347,11 +345,12 @@ Outer:
 }
 
 func (sm *AlternateStateMachine) Reset() {
+	for i := sm.machineCursor; i >= 0; i-- {
+		sm.stateMachines[i].Reset()
+	}
+
 	sm.machineCursor = 0
 	sm.events = []Event{}
-	for _, machine := range sm.stateMachines {
-		machine.Reset()
-	}
 }
 
 func (sm *AlternateStateMachine) String() string {
@@ -380,6 +379,54 @@ bababa
 abbbab
 aaabbb
 aaaabbb`
+
+const exampleInput2 = `42: 9 14 | 10 1
+9: 14 27 | 1 26
+10: 23 14 | 28 1
+1: "a"
+11: 42 31 | 42 11 31
+5: 1 14 | 15 1
+19: 14 1 | 14 14
+12: 24 14 | 19 1
+16: 15 1 | 14 14
+31: 14 17 | 1 13
+6: 14 14 | 1 14
+2: 1 24 | 14 4
+0: 8 11
+13: 14 3 | 1 12
+15: 1 | 14
+17: 14 2 | 1 7
+23: 25 1 | 22 14
+28: 16 1
+4: 1 1
+20: 14 14 | 1 15
+3: 5 14 | 16 1
+27: 1 6 | 14 18
+14: "b"
+21: 14 1 | 1 14
+25: 1 1 | 1 14
+22: 14 14
+8: 42 | 42 8
+26: 14 22 | 1 20
+18: 15 15
+7: 14 5 | 1 21
+24: 14 1
+
+abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
+bbabbbbaabaabba
+babbbbaabbbbbabbbbbbaabaaabaaa
+aaabbbbbbaaaabaababaabababbabaaabbababababaaa
+bbbbbbbaaaabbbbaaabbabaaa
+bbbababbbbaaaaaaaabbababaaababaabab
+ababaaaaaabaaab
+ababaaaaabbbaba
+baabbaaaabbaaaababbaababb
+abbbbabbbbaaaababbbbbbaaaababb
+aaaaabbaabaaaaababaa
+aaaabbaaaabbaaa
+aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
+babaaabbbaaabaababbaabababaaab
+aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba`
 
 const input = `123: 39 86 | 127 32
 8: 42 | 42 8
