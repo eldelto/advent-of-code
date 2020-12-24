@@ -30,9 +30,6 @@ func countMatches(machine FSM, inputs []string) int {
 		if matchInput(machine, v) {
 			sum++
 		}
-		// else {
-		// 	fmt.Println("no match: " + v)
-		// }
 	}
 
 	return sum
