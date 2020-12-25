@@ -60,28 +60,27 @@ func parseFSM(input string) FSM {
 		rules[id] = rule
 	}
 
+	// return NewConcatStateMachine(parseRecursiveFSM(rules, "0"), NewRuneMachine(' '))
 	return parseRecursiveFSM(rules, "0")
 }
 
 func parseRecursiveFSM(rules map[string]string, id string) FSM {
-	return NewLazyStateMachine(func() FSM {
-		rule, ok := rules[id]
-		if !ok {
-			panic(fmt.Errorf("rule with ID %s does not exist", id))
-		}
+	rule, ok := rules[id]
+	if !ok {
+		panic(fmt.Errorf("rule with ID %s does not exist", id))
+	}
 
-		if strings.ContainsRune(rule, '"') {
-			return parseRune(rule)
-		} else if strings.ContainsRune(rule, '|') {
-			parts := strings.Split(rule, "|")
-			return NewAlternateStateMachine(
-				parseConcat(rules, parts[0]),
-				parseConcat(rules, parts[1]),
-			)
-		}
+	if strings.ContainsRune(rule, '"') {
+		return parseRune(rule)
+	} else if strings.ContainsRune(rule, '|') {
+		parts := strings.Split(rule, "|")
+		return NewAlternateStateMachine(
+			parseConcat(rules, parts[0]),
+			parseConcat(rules, parts[1]),
+		)
+	}
 
-		return parseConcat(rules, rule)
-	})
+	return parseConcat(rules, rule)
 }
 
 func parseRune(rule string) FSM {
@@ -90,16 +89,36 @@ func parseRune(rule string) FSM {
 }
 
 func parseConcat(rules map[string]string, rule string) FSM {
-	rule = strings.TrimSpace(rule)
-	ids := strings.Split(rule, " ")
+	return NewLazyStateMachine(func() FSM {
+		rule = strings.TrimSpace(rule)
+		ids := strings.Split(rule, " ")
 
-	machines := []FSM{}
-	for _, id := range ids {
-		fsm := parseRecursiveFSM(rules, id)
-		machines = append(machines, fsm)
-	}
+		machines := []FSM{}
+		postMachines := []FSM{}
+		var lastMachine *AlternateStateMachine
+		for _, id := range ids {
+			fsm := parseRecursiveFSM(rules, id)
 
-	return NewConcatStateMachine(machines...)
+			if lastMachine != nil {
+				postMachines = append(postMachines, fsm)
+			} else {
+				machines = append(machines, fsm)
+			}
+
+			switch fsm.(type) {
+			case *AlternateStateMachine:
+				lastMachine = fsm.(*AlternateStateMachine)
+			}
+		}
+
+		if lastMachine != nil && len(postMachines) > 0 {
+			for i := range lastMachine.stateMachines {
+				lastMachine.stateMachines[i] = NewConcatStateMachine(lastMachine.stateMachines[i], NewConcatStateMachine(postMachines...))
+			}
+		}
+
+		return NewConcatStateMachine(machines...)
+	})
 }
 
 func matchInput(machine FSM, input string) bool {
@@ -108,6 +127,7 @@ func matchInput(machine FSM, input string) bool {
 			return false
 		}
 	}
+	// machine.Transition(Event(' '))
 
 	return machine.IsAccepting()
 }
@@ -231,6 +251,9 @@ type ConcatStateMachine struct {
 }
 
 func NewConcatStateMachine(stateMachines ...FSM) *ConcatStateMachine {
+	// TODO: Iterate through stateMachines and until we find an alternator
+	//			 Create new concat machines for each alternator path.
+
 	return &ConcatStateMachine{
 		stateMachines: stateMachines,
 		machineCursor: 0,
@@ -293,52 +316,56 @@ func NewAlternateStateMachine(stateMachines ...FSM) *AlternateStateMachine {
 }
 
 func (sm *AlternateStateMachine) IsAccepting() bool {
-	// for _, machine := range sm.stateMachines {
-	// 	if machine.IsAccepting() {
-	// 		return true
-	// 	}
-	// }
+	for _, machine := range sm.stateMachines {
+		if machine.IsAccepting() {
+			return true
+		}
+	}
 
-	// return false
+	return false
 
-	return sm.stateMachines[sm.machineCursor].IsAccepting()
+	// return sm.stateMachines[sm.machineCursor].IsAccepting()
 }
 
 func (sm *AlternateStateMachine) Transition(event Event) error {
-	// success := false
-	// for _, machine := range sm.stateMachines {
-	// 	if machine.Transition(event) == nil {
-	// 		success = true
-	// 	}
-	// }
-
-	// if !success {
-	// 	return fmt.Errorf("no machting transition found for event: %c", event)
-	// }
-
-	// return nil
-
-	sm.events = append(sm.events, event)
-	machine := sm.stateMachines[sm.machineCursor]
-
-	err := machine.Transition(event)
-	if err == nil {
-		return nil
-	}
-
-Outer:
-	for i := sm.machineCursor + 1; i < len(sm.stateMachines); i++ {
-		for _, e := range sm.events {
-			if sm.stateMachines[i].Transition(e) != nil {
-				continue Outer
-			}
+	success := false
+	for _, machine := range sm.stateMachines {
+		if machine.Transition(event) == nil {
+			success = true
 		}
-
-		sm.machineCursor = i
-		return nil
 	}
 
-	return err
+	if !success {
+		return fmt.Errorf("no machting transition found for event: %c", event)
+	}
+
+	return nil
+
+	// 	fmt.Println("Regular: " + string(event))
+	// 	sm.events = append(sm.events, event)
+	// 	machine := sm.stateMachines[sm.machineCursor]
+
+	// 	err := machine.Transition(event)
+	// 	if err == nil {
+	// 		return nil
+	// 	}
+
+	// Outer:
+	// 	for i := sm.machineCursor + 1; i < len(sm.stateMachines); i++ {
+	// 		for _, e := range sm.events {
+	// 			fmt.Println("Replay: " + string(e))
+	// 			machine = sm.stateMachines[i]
+	// 			if err := machine.Transition(e); err != nil {
+	// 				fmt.Println(err)
+	// 				continue Outer
+	// 			}
+	// 		}
+
+	// 		sm.machineCursor = i
+	// 		return nil
+	// 	}
+
+	// 	return err
 }
 
 func (sm *AlternateStateMachine) Reset() {
