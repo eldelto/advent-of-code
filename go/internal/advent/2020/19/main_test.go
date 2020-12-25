@@ -46,6 +46,10 @@ func Test_parseInput(t *testing.T) {
 		{`0: 1 2 1 | 2 1
 		1: "a"
 		2: "b"`, "ba", true},
+		{`0: 1 2
+		1: 2 3 2 | 2 3
+		2: "a"
+		3: "b"`, "aba", true},
 		{`0: 4 1 5
 		1: 2 3 | 3 2
 		2: 4 4 | 5 5
