@@ -50,7 +50,7 @@ defmodule AdventOfCode.Nineteen do
     rule
   end
 
-  def substitute_sub_rules(_ruleMap, rules, 12) when is_list(rules) do
+  def substitute_sub_rules(_ruleMap, rules, 11) when is_list(rules) do
     []
   end
 

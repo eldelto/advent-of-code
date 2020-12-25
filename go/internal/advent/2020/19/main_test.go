@@ -68,6 +68,7 @@ func Test_parseInput(t *testing.T) {
 		3: 4 5 | 5 4
 		4: "a"
 		5: "b"`, "aaabbb", false},
+		// Recursive
 		{`0: 1
 		1: 3 | 2 1
 		2: "a"
