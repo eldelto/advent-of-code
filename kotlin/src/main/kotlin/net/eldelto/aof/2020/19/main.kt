@@ -5,48 +5,37 @@ import java.lang.IllegalStateException
 fun main() {
 
   // Example
-  //val exampleResult = findMatches(exampleInput)
-  //println("Example result: $exampleResult")
-
-  // Scenario 1
-  //val result = findMatches(input)
-  //println("Scenario 1 result: $result")
+  val exampleResult = findValidatorMatches(exampleInput)
+  println("Example result: $exampleResult")
 
   // Example 2
-  val exampleResult2 = findMatches(exampleInput2)
+  val exampleResult2 = findValidatorMatches(exampleInput2)
   println("Example 2 result: $exampleResult2")
+
+  // Scenario
+  val result = findValidatorMatches(input)
+  println("Scenario result: $result")
 }
 
-fun findMatches(input: String): Int {
+fun findValidatorMatches(input: String): Int {
   val parts = input.split("\n\n")
 
-  val fsm = parseRules(parts[0])
+  val validator = parseValidatorRules(parts[0])
   val words = parts[1].split("\n")
 
-  println("PARSED!")
-  return words.map { matchesWord(it, fsm) }
+  return words.map { validator.consume(it + "x").contains("x") }
     .filter { it }
     .size
 }
 
-fun matchesWord(word: String, fsm: FSM): Boolean {
-  val events = word.split("").filter(String::isNotEmpty)
-  var machine = fsm
-  for (e in events) {
-    machine = machine.transition(e)
-  }
-
-  return machine.isAccepting()
-}
-
 data class Rule(val number: String, val left: List<String>, val right: List<String>)
 
-fun parseRules(input: String): FSM {
+fun parseValidatorRules(input: String): Validator {
   val ruleMap = input.split("\n")
     .map(::parseRule)
     .fold(mapOf<String, Rule>()) { acc, r -> acc + Pair(r.number, r) }
 
-  return generateFSM(ConcatMachine(), ruleMap, "0", 0)
+  return generateValidator(ruleMap, "0", 0)
 }
 
 fun parseRule(row: String): Rule {
@@ -61,155 +50,30 @@ fun parseRule(row: String): Rule {
   return Rule(number, left, right)
 }
 
-fun generateFSM(
-  fsm: AppendableFSM,
+fun generateValidator(
   ruleMap: Map<String, Rule>,
   id: String,
   level: Int
-): FSM {
-  val builder = builder@{
-    if (level > 10) {
-      return@builder fsm.append(newRuneMachine("x"))
-    }
-
-    if (id.contains("\"")) {
-      return@builder fsm.append(newRuneMachine(id.trim('"')))
-    }
-
-    val rule = ruleMap[id] ?: throw IllegalStateException("rule with ID $id not found")
-    val leftFSM = rule.left.map { generateFSM(ConcatMachine(), ruleMap, it, level + 1) }
-    val rightFSM = rule.right.map { generateFSM(ConcatMachine(), ruleMap, it, level + 1) }
-
-    return@builder if (rightFSM.isEmpty()) {
-      appendToFSM(fsm, leftFSM)
-    } else {
-      fsm.append(
-        AlternateMachine(
-          appendToFSM(ConcatMachine(), leftFSM),
-          appendToFSM(ConcatMachine(), rightFSM)
-        )
-      )
-    }
+): Validator {
+  if (level > 100) {
+    return RuneValidator('x')
   }
 
-  return LazyMachine(builder)
-}
-
-fun appendToFSM(fsm: AppendableFSM, machines: List<FSM>): AppendableFSM {
-  var machine = fsm
-  for (f in machines) {
-    machine = machine.append(f)
+  if (id.contains("\"")) {
+    return RuneValidator(id.trim('"').first())
   }
 
-  return machine
-}
+  val rule = ruleMap[id] ?: throw IllegalStateException("rule with ID $id not found")
+  val leftValidators = rule.left.map { generateValidator(ruleMap, it, level + 1) }
+  val rightValidators = rule.right.map { generateValidator(ruleMap, it, level + 1) }
 
-typealias Event = String
-
-data class State(val name: String, val accepting: Boolean)
-
-data class Transition(val event: Event, val origin: State, val destination: State)
-
-interface FSM {
-  fun transition(event: Event): FSM
-  fun isAccepting(): Boolean
-}
-
-interface AppendableFSM : FSM {
-  fun append(fsm: FSM): AppendableFSM
-}
-
-data class StateMachine(val state: State, private val transitions: List<Transition>) : FSM {
-  private val bricked = State("bricked", false)
-
-  override fun transition(event: Event): StateMachine {
-    val transition = transitions.find { it.event == event && it.origin == state }
-    val newState = transition?.destination ?: bricked
-    return copy(state = newState)
-  }
-
-  override fun isAccepting(): Boolean = state.accepting
-}
-
-fun newRuneMachine(rune: String): StateMachine {
-  val noMatch = State("no match", false)
-  val match = State("match", true)
-
-  val transitions = listOf(Transition(rune, noMatch, match))
-
-  return StateMachine(noMatch, transitions)
-}
-
-data class ConcatMachine(private val machines: List<FSM>) : FSM, AppendableFSM {
-
-  constructor(vararg machines: FSM) : this(machines.toList())
-
-  override fun transition(event: Event): ConcatMachine {
-    val newMachines = transitionSubMachines(machines, event)
-    return copy(machines = newMachines)
-  }
-
-  private tailrec fun transitionSubMachines(machines: List<FSM>, event: Event, acc: List<FSM> = listOf()): List<FSM> {
-    val head = machines.first()
-    val tail = machines.drop(1)
-
-    if (head.isAccepting() && tail.isNotEmpty()) {
-      return transitionSubMachines(tail, event, acc + head)
-    }
-
-    val newMachine = head.transition(event)
-    return acc + newMachine + tail
-  }
-
-  override fun isAccepting(): Boolean = machines.last().isAccepting()
-
-  override fun append(fsm: FSM): ConcatMachine {
-    val newMachines = if (machines.isEmpty()) {
-      machines + fsm
-    } else {
-      when (val lastMachine = machines.last()) {
-        is AppendableFSM -> machines.dropLast(1) + lastMachine.append(fsm)
-        else -> machines + fsm
-      }
-    }
-
-    return copy(machines = newMachines)
-  }
-}
-
-data class AlternateMachine(private val machines: List<FSM>) : FSM, AppendableFSM {
-
-  constructor(vararg machines: FSM) : this(machines.toList())
-
-  override fun transition(event: Event): AlternateMachine {
-    val newMachines = machines.map { it.transition(event) }
-    return copy(machines = newMachines)
-  }
-
-  override fun isAccepting(): Boolean = machines.any(FSM::isAccepting)
-
-  override fun append(fsm: FSM): AlternateMachine {
-    val newMachines = machines.map {
-      when (it) {
-        is AppendableFSM -> it.append(fsm)
-        else -> ConcatMachine(it, fsm)
-      }
-    }
-
-    return copy(machines = newMachines)
-  }
-}
-
-typealias FSMBuilder = () -> FSM
-
-class LazyMachine(private val builder: FSMBuilder) : AppendableFSM {
-
-  override fun transition(event: Event): FSM = builder().transition(event)
-
-  override fun isAccepting(): Boolean = false
-
-  override fun append(fsm: FSM): AppendableFSM {
-
+  return if (rightValidators.isEmpty()) {
+    ConcatValidator(leftValidators)
+  } else {
+    AlternateValidator(
+      ConcatValidator(leftValidators),
+      ConcatValidator(rightValidators)
+    )
   }
 }
 
@@ -241,7 +105,7 @@ val input = """
   133: 86 6 | 32 132
   115: 36 86 | 40 32
   87: 38 86 | 49 32
-  11: 42 31
+  11: 42 31 | 42 11 31
   129: 32 94 | 86 61
   126: 137 86 | 67 32
   64: 124 32 | 119 86
@@ -361,7 +225,7 @@ val input = """
   92: 86 119 | 32 112
   98: 15 32 | 30 86
   66: 48 32 | 118 86
-  8: 42
+  8: 42 | 42 8
   101: 86 44 | 32 69
   71: 124 32 | 29 86
   36: 18 86 | 65 32
