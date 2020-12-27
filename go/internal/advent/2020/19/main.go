@@ -69,8 +69,8 @@ func parseFSM(input string) FSM {
 
 func parseRecursiveFSM(fsm Appender, rules map[string]string, id string, level int) {
 	fmt.Println(id + ":" + fmt.Sprint(level))
-	if level >= 1000 {
-		fsm.Append(NewRuneMachine('x'))
+	if level >= 10 {
+		fsm.Append(NewNamedRuneMachine("x", 'x'))
 		return
 	}
 	level++
@@ -82,19 +82,20 @@ func parseRecursiveFSM(fsm Appender, rules map[string]string, id string, level i
 	}
 
 	if strings.ContainsRune(rule, '"') {
-		fsm.Append(parseRune(rule))
+		fsm.Append(parseRune(id, rule))
 		return
 	} else if strings.ContainsRune(rule, '|') {
 		parts := strings.Split(rule, "|")
-		left := NewConcatStateMachine()
-		for _, id := range strings.Split(strings.TrimSpace(parts[0]), " ") {
-			parseRecursiveFSM(left, rules, id, level)
+		left := NewNamedConcatStateMachine(id + "-left")
+		for _, i := range strings.Split(strings.TrimSpace(parts[0]), " ") {
+			parseRecursiveFSM(left, rules, i, level)
 		}
-		right := NewConcatStateMachine()
-		for _, id := range strings.Split(strings.TrimSpace(parts[1]), " ") {
-			parseRecursiveFSM(right, rules, id, level)
+		right := NewNamedConcatStateMachine(id + "-right")
+		for _, i := range strings.Split(strings.TrimSpace(parts[1]), " ") {
+			parseRecursiveFSM(right, rules, i, level)
 		}
-		alternator := NewAlternateStateMachine(
+		alternator := NewNamedAlternateStateMachine(
+			id,
 			left,
 			right,
 		)
@@ -102,14 +103,14 @@ func parseRecursiveFSM(fsm Appender, rules map[string]string, id string, level i
 		return
 	}
 
-	for _, id := range strings.Split(rule, " ") {
-		parseRecursiveFSM(fsm, rules, id, level)
+	for _, i := range strings.Split(rule, " ") {
+		parseRecursiveFSM(fsm, rules, i, level)
 	}
 }
 
-func parseRune(rule string) FSM {
+func parseRune(name string, rule string) FSM {
 	r := []rune(strings.Trim(rule, "\""))[0]
-	return NewRuneMachine(r)
+	return NewNamedRuneMachine(name, r)
 }
 
 func matchInput(machine FSM, input string) bool {

@@ -28,6 +28,7 @@ type Appender interface {
 }
 
 type StateMachine struct {
+	name         string
 	initialState State
 	currentState State
 	states       []State
@@ -36,6 +37,16 @@ type StateMachine struct {
 
 func NewStateMachine(initialState State, states []State, transitions []Transition) *StateMachine {
 	return &StateMachine{
+		initialState: initialState,
+		currentState: initialState,
+		states:       states,
+		transitions:  transitions,
+	}
+}
+
+func NewNamedStateMachine(name string, initialState State, states []State, transitions []Transition) *StateMachine {
+	return &StateMachine{
+		name:         name,
 		initialState: initialState,
 		currentState: initialState,
 		states:       states,
@@ -74,13 +85,33 @@ func NewRuneMachine(r rune) *StateMachine {
 	return NewStateMachine(noMatch, []State{noMatch, match}, transitions)
 }
 
+func NewNamedRuneMachine(name string, r rune) *StateMachine {
+	noMatch := State{"no match", false}
+	match := State{"match", true}
+
+	transitions := []Transition{
+		{Event(r), noMatch, match},
+	}
+
+	return NewNamedStateMachine(name, noMatch, []State{noMatch, match}, transitions)
+}
+
 type ConcatStateMachine struct {
+	name          string
 	stateMachines []FSM
 	machineCursor int
 }
 
 func NewConcatStateMachine(stateMachines ...FSM) *ConcatStateMachine {
 	return &ConcatStateMachine{
+		stateMachines: stateMachines,
+		machineCursor: 0,
+	}
+}
+
+func NewNamedConcatStateMachine(name string, stateMachines ...FSM) *ConcatStateMachine {
+	return &ConcatStateMachine{
+		name:          name,
 		stateMachines: stateMachines,
 		machineCursor: 0,
 	}
@@ -129,11 +160,19 @@ func (sm *ConcatStateMachine) Append(fsm FSM) {
 }
 
 type AlternateStateMachine struct {
+	name          string
 	stateMachines []FSM
 }
 
 func NewAlternateStateMachine(stateMachines ...FSM) *AlternateStateMachine {
 	return &AlternateStateMachine{
+		stateMachines: stateMachines,
+	}
+}
+
+func NewNamedAlternateStateMachine(name string, stateMachines ...FSM) *AlternateStateMachine {
+	return &AlternateStateMachine{
+		name:          name,
 		stateMachines: stateMachines,
 	}
 }
@@ -217,7 +256,7 @@ func (sm *AlternateStateMachine) Append(fsm FSM) {
 		case Appender:
 			machine.(Appender).Append(fsm)
 		default:
-			machine = NewConcatStateMachine(machine, fsm)
+			machine = NewNamedConcatStateMachine(sm.name+"-concat", machine, fsm)
 		}
 	}
 }
