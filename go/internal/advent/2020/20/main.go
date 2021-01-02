@@ -134,35 +134,28 @@ func parseTile(input string) *Tile {
 
 func positionTiles(tiles []*Tile, s tcell.Screen, quit <-chan struct{}) {
 	corners := findCornerPieces(tiles)
-	for _, corner := range corners {
-		for i := 0; i < 4; i++ {
-			corner.Position = Vec2{0, 0}
+	corner := corners[0]
+	for i := 0; i < 4; i++ {
+		corner.Position = Vec2{0, 0}
 
-			grid := NewGrid(len(tiles))
-			grid.Tiles[0][0] = corner
+		grid := NewGrid(len(tiles))
+		grid.Tiles[0][0] = corner
 
-			for {
-				nextPositions := grid.GetNextPositions()
-				if len(nextPositions) == 0 {
-					fmt.Println("Done!")
-					return
-				}
-
-				if !attachTile(grid, tiles, nextPositions, s, quit) {
-					resetTiles(tiles)
-					s.Clear()
-					break
-				}
+		for {
+			nextPositions := grid.GetNextPositions()
+			if len(nextPositions) == 0 {
+				fmt.Println("Done!")
+				return
 			}
 
-			i++
-			if i >= len(tiles) {
-				i = 0
+			if !attachTile(grid, tiles, nextPositions, s, quit) {
+				resetTiles(tiles)
+				s.Clear()
+				break
 			}
-
-			corner.Rotate()
 		}
-		corner.Position = Vec2{-1, -1}
+
+		corner.Rotate()
 	}
 
 	fmt.Println("No layout found")
