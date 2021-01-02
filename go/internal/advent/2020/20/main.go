@@ -5,7 +5,7 @@ import (
 	"math"
 	"os"
 	"strconv"
-	"time"
+	// "time"
 
 	"strings"
 
@@ -13,14 +13,90 @@ import (
 )
 
 func main() {
-	tiles := parseTiles(exampleInput)
 
+	// Example
+	exampleTiles := parseTiles(exampleInput)
+	exampleResult := part1Shortcut(exampleTiles)
+	fmt.Printf("Example: %d\n", exampleResult)
+
+	// Scenario 1
+	tiles := parseTiles(input)
+	result := part1Shortcut(tiles)
+	fmt.Printf("Scenario 1: %d\n", result)
+
+	// Scenario 2
 	screen := initTcell()
 	defer screen.Fini()
 
 	waitForEsc(screen, func(s tcell.Screen, quit <-chan struct{}) {
 		positionTiles(tiles, s, quit)
 	})
+}
+
+func buildTileMatchMap(tiles []*Tile) map[int][]*Tile {
+	tileMap := map[int][]*Tile{}
+	for _, tile := range tiles {
+		tileMap[tile.ID] = []*Tile{}
+		for _, other := range tiles {
+			if tile == other {
+				continue
+			}
+
+			for _, myEdge := range tile.PossibleEdges {
+				for _, otherEdge := range other.PossibleEdges {
+					if myEdge.Equals(otherEdge) {
+						tileMap[tile.ID] = append(tileMap[tile.ID], other)
+					}
+				}
+			}
+		}
+	}
+
+	return tileMap
+}
+
+func findCornerPieces(tiles []*Tile) []*Tile {
+	tileMap := buildTileMatchMap(tiles)
+
+	corners := []*Tile{}
+	for k, v := range tileMap {
+		if len(v) != 4 {
+			continue
+		}
+
+		for _, tile := range tiles {
+			if k == tile.ID {
+				corners = append(corners, tile)
+				break
+			}
+		}
+	}
+
+	return corners
+}
+
+func part1Shortcut(tiles []*Tile) int {
+	tileMap := buildTileMatchMap(tiles)
+
+	// Uncomment for debug output
+	// for k, v := range tileMap {
+	// 	fmt.Printf("%d matches for %d: ", len(v), k)
+	// 	for _, tile := range v {
+	// 		fmt.Printf("%d, ", tile.ID)
+	// 	}
+	// 	fmt.Println()
+	// }
+
+	product := 1
+	for k, v := range tileMap {
+		if len(v) != 4 {
+			continue
+		}
+
+		product *= k
+	}
+
+	return product
 }
 
 func parseTiles(input string) []*Tile {
@@ -57,32 +133,36 @@ func parseTile(input string) *Tile {
 }
 
 func positionTiles(tiles []*Tile, s tcell.Screen, quit <-chan struct{}) {
-	i := 0
-	for { //_, startTile := range tiles {
-		startTile := tiles[i]
-		startTile.Position = Vec2{0, 0}
+	corners := findCornerPieces(tiles)
+	for _, corner := range corners {
+		for i := 0; i < 4; i++ {
+			corner.Position = Vec2{0, 0}
 
-		grid := NewGrid(len(tiles))
-		grid.Tiles[0][0] = startTile
+			grid := NewGrid(len(tiles))
+			grid.Tiles[0][0] = corner
 
-		for {
-			nextPositions := grid.GetNextPositions()
-			if len(nextPositions) == 0 {
-				fmt.Println("Done!")
-				return
+			for {
+				nextPositions := grid.GetNextPositions()
+				if len(nextPositions) == 0 {
+					fmt.Println("Done!")
+					return
+				}
+
+				if !attachTile(grid, tiles, nextPositions, s, quit) {
+					resetTiles(tiles)
+					s.Clear()
+					break
+				}
 			}
 
-			if !attachTile(grid, tiles, nextPositions, s, quit) {
-				resetTiles(tiles)
-				s.Clear()
-				break
+			i++
+			if i >= len(tiles) {
+				i = 0
 			}
-		}
 
-		i++
-		if i >= len(tiles) {
-			i = 0
+			corner.Rotate()
 		}
+		corner.Position = Vec2{-1, -1}
 	}
 
 	fmt.Println("No layout found")
@@ -110,19 +190,25 @@ func attachTile(grid *Grid, tiles []*Tile, positions []Vec2, s tcell.Screen, qui
 			neighbourEdges := grid.FindNeighbourEdges(pos)
 			tile.Position = pos
 			drawTiles(s, tiles)
-			time.Sleep(time.Millisecond * 1)
+			// time.Sleep(time.Millisecond * 1)
 
 			// if !couldAttach(tile, neighbourEdges) {
 			// 	continue
 			// }
 
 			if canAttach(tile, neighbourEdges) {
+				if !couldAttach(tile, neighbourEdges) {
+					panic("could attach error")
+				}
 				drawTiles(s, tiles)
 				grid.Tiles[pos.Y][pos.X] = tile
 				return true
 			}
-			for i := 0; i < 3; i++ {
+			for i := 0; i < 4; i++ {
 				if tile.Rotate(); canAttach(tile, neighbourEdges) {
+					if !couldAttach(tile, neighbourEdges) {
+						panic("could attach error")
+					}
 					drawTiles(s, tiles)
 					grid.Tiles[pos.Y][pos.X] = tile
 					return true
@@ -130,12 +216,18 @@ func attachTile(grid *Grid, tiles []*Tile, positions []Vec2, s tcell.Screen, qui
 			}
 
 			if tile.Flip(); canAttach(tile, neighbourEdges) {
+				if !couldAttach(tile, neighbourEdges) {
+					panic("could attach error")
+				}
 				drawTiles(s, tiles)
 				grid.Tiles[pos.Y][pos.X] = tile
 				return true
 			}
-			for i := 0; i < 3; i++ {
+			for i := 0; i < 4; i++ {
 				if tile.Rotate(); canAttach(tile, neighbourEdges) {
+					if !couldAttach(tile, neighbourEdges) {
+						panic("could attach error")
+					}
 					drawTiles(s, tiles)
 					grid.Tiles[pos.Y][pos.X] = tile
 					return true
@@ -150,6 +242,7 @@ func attachTile(grid *Grid, tiles []*Tile, positions []Vec2, s tcell.Screen, qui
 }
 
 func couldAttach(tile *Tile, neighbourEdges [4]Edge) bool {
+Outer:
 	for _, otherEdge := range neighbourEdges {
 		if len(otherEdge) == 0 {
 			continue
@@ -157,12 +250,14 @@ func couldAttach(tile *Tile, neighbourEdges [4]Edge) bool {
 
 		for _, myEdge := range tile.PossibleEdges {
 			if myEdge.Equals(otherEdge) {
-				return true
+				continue Outer
 			}
 		}
+
+		return false
 	}
 
-	return false
+	return true
 }
 
 func canAttach(tile *Tile, neighbourEdges [4]Edge) bool {
@@ -202,7 +297,6 @@ type Tile struct {
 	Position      Vec2
 	Edges         [4]Edge
 	PossibleEdges [8]Edge
-	ops           []string
 }
 
 func NewTile(id int, data [][]rune) *Tile {
@@ -211,17 +305,12 @@ func NewTile(id int, data [][]rune) *Tile {
 		Data:     data,
 		Position: Vec2{-1, -1},
 		Edges:    edgesFromData(data),
-		ops:      []string{},
 	}
 
-	tile.Flip()
-	flipEdges := edgesFromData(tile.Data)
-	tile.Flip()
-
 	possibleEdges := [8]Edge{}
-	for i := range tile.Edges {
-		possibleEdges[i] = tile.Edges[i]
-		possibleEdges[i+4] = flipEdges[i]
+	for i, edge := range tile.Edges {
+		possibleEdges[i] = edge
+		possibleEdges[i+4] = reverse(edge)
 	}
 	tile.PossibleEdges = possibleEdges
 
@@ -245,7 +334,6 @@ func (t *Tile) Flip() {
 
 	t.Data = newData
 	t.Edges = edgesFromData(newData)
-	t.ops = append(t.ops, "flip")
 }
 
 func (t *Tile) Rotate() {
@@ -263,7 +351,6 @@ func (t *Tile) Rotate() {
 
 	t.Data = newData
 	t.Edges = edgesFromData(newData)
-	t.ops = append(t.ops, "rotate")
 }
 
 func edgesFromData(data [][]rune) [4]Edge {
