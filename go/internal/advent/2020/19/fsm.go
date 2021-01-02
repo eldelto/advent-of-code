@@ -25,6 +25,7 @@ type FSM interface {
 
 type Appender interface {
 	Append(FSM)
+	Next() ([]FSM, bool)
 }
 
 type StateMachine struct {
@@ -145,18 +146,30 @@ func (sm *ConcatStateMachine) Reset() {
 }
 
 func (sm *ConcatStateMachine) Append(fsm FSM) {
+	// if len(sm.stateMachines) == 0 {
+	// 	sm.stateMachines = append(sm.stateMachines, fsm)
+	// 	return
+	// }
+
+	// machine := sm.stateMachines[len(sm.stateMachines)-1]
+	// switch machine.(type) {
+	// case Appender:
+	// 	machine.(Appender).Append(fsm)
+	// default:
+	// 	sm.stateMachines = append(sm.stateMachines, fsm)
+	// }
+
+	appendToLast(sm, fsm)
+}
+
+func (sm *ConcatStateMachine) Next() ([]FSM, bool) {
 	if len(sm.stateMachines) == 0 {
-		sm.stateMachines = append(sm.stateMachines, fsm)
-		return
+		return nil, false
 	}
 
-	machine := sm.stateMachines[len(sm.stateMachines)-1]
-	switch machine.(type) {
-	case Appender:
-		machine.(Appender).Append(fsm)
-	default:
-		sm.stateMachines = append(sm.stateMachines, fsm)
-	}
+	next := sm.stateMachines[len(sm.stateMachines)-1]
+
+	return []FSM{next}, true
 }
 
 type AlternateStateMachine struct {
@@ -251,12 +264,48 @@ func (sm *AlternateStateMachine) Reset() {
 }
 
 func (sm *AlternateStateMachine) Append(fsm FSM) {
-	for _, machine := range sm.stateMachines {
-		switch machine.(type) {
-		case Appender:
-			machine.(Appender).Append(fsm)
-		default:
-			machine = NewNamedConcatStateMachine(sm.name+"-concat", machine, fsm)
+	// for _, machine := range sm.stateMachines {
+	// 	switch machine.(type) {
+	// 	case Appender:
+	// 		machine.(Appender).Append(fsm)
+	// 	default:
+	// 		machine = NewConcatStateMachine(machine, fsm)
+	// 	}
+	// }
+
+	appendToLast(sm, fsm)
+}
+
+func (sm *AlternateStateMachine) Next() ([]FSM, bool) {
+	if len(sm.stateMachines) == 0 {
+		return nil, false
+	}
+
+	return sm.stateMachines, true
+}
+
+func appendToLast(appender Appender, fsm FSM) {
+	currentMachines := []Appender{appender}
+	nextMachines := []FSM{}
+
+	for len(currentMachines) > 0 {
+		for _, m := range currentMachines {
+			machines, ok := m.Next()
+			if !ok {
+				m.Append(fsm)
+			}
+
+			nextMachines = append(nextMachines, machines...)
 		}
+
+		currentMachines = []Appender{}
+		for _, m := range nextMachines {
+			switch m.(type) {
+			case Appender:
+				currentMachines = append(currentMachines, m.(Appender))
+			}
+		}
+
+		nextMachines = []FSM{}
 	}
 }

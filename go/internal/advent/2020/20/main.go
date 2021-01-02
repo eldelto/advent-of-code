@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -63,14 +62,17 @@ func positionTiles(tiles []*Tile, s tcell.Screen, quit <-chan struct{}) {
 		startTile := tiles[i]
 		startTile.Position = Vec2{0, 0}
 
+		grid := NewGrid(len(tiles))
+		grid.Tiles[0][0] = startTile
+
 		for {
-			nextPos, err := findNextPosition(tiles)
-			if err != nil {
+			nextPositions := grid.GetNextPositions()
+			if len(nextPositions) == 0 {
 				fmt.Println("Done!")
 				return
 			}
 
-			if !attachTile(tiles, nextPos, s, quit) {
+			if !attachTile(grid, tiles, nextPositions, s, quit) {
 				resetTiles(tiles)
 				s.Clear()
 				break
@@ -92,8 +94,7 @@ func resetTiles(tiles []*Tile) {
 	}
 }
 
-func attachTile(tiles []*Tile, pos Vec2, s tcell.Screen, quit <-chan struct{}) bool {
-	neighbourEdges := findNeighbourEdges(tiles, pos)
+func attachTile(grid *Grid, tiles []*Tile, positions []Vec2, s tcell.Screen, quit <-chan struct{}) bool {
 	for _, tile := range tiles {
 		if tile.Position != (Vec2{-1, -1}) {
 			continue
@@ -105,29 +106,60 @@ func attachTile(tiles []*Tile, pos Vec2, s tcell.Screen, quit <-chan struct{}) b
 		default:
 		}
 
-		tile.Position = pos
-		drawTiles(s, tiles)
-		time.Sleep(time.Millisecond * 10)
+		for _, pos := range positions {
+			neighbourEdges := grid.FindNeighbourEdges(pos)
+			tile.Position = pos
+			drawTiles(s, tiles)
+			time.Sleep(time.Millisecond * 1)
 
-		if canAttach(tile, neighbourEdges) {
-			return true
+			// if !couldAttach(tile, neighbourEdges) {
+			// 	continue
+			// }
+
+			if canAttach(tile, neighbourEdges) {
+				drawTiles(s, tiles)
+				grid.Tiles[pos.Y][pos.X] = tile
+				return true
+			}
+			for i := 0; i < 3; i++ {
+				if tile.Rotate(); canAttach(tile, neighbourEdges) {
+					drawTiles(s, tiles)
+					grid.Tiles[pos.Y][pos.X] = tile
+					return true
+				}
+			}
+
+			if tile.Flip(); canAttach(tile, neighbourEdges) {
+				drawTiles(s, tiles)
+				grid.Tiles[pos.Y][pos.X] = tile
+				return true
+			}
+			for i := 0; i < 3; i++ {
+				if tile.Rotate(); canAttach(tile, neighbourEdges) {
+					drawTiles(s, tiles)
+					grid.Tiles[pos.Y][pos.X] = tile
+					return true
+				}
+			}
+
+			tile.Position = Vec2{-1, -1}
 		}
-		for i := 0; i < 3; i++ {
-			if tile.Rotate(); canAttach(tile, neighbourEdges) {
+	}
+
+	return false
+}
+
+func couldAttach(tile *Tile, neighbourEdges [4]Edge) bool {
+	for _, otherEdge := range neighbourEdges {
+		if len(otherEdge) == 0 {
+			continue
+		}
+
+		for _, myEdge := range tile.PossibleEdges {
+			if myEdge.Equals(otherEdge) {
 				return true
 			}
 		}
-
-		if tile.Flip(); canAttach(tile, neighbourEdges) {
-			return true
-		}
-		for i := 0; i < 4; i++ {
-			if tile.Rotate(); canAttach(tile, neighbourEdges) {
-				return true
-			}
-		}
-
-		tile.Position = Vec2{-1, -1}
 	}
 
 	return false
@@ -145,63 +177,6 @@ func canAttach(tile *Tile, neighbourEdges [4]Edge) bool {
 	}
 
 	return true
-}
-
-func findNeighbourEdges(tiles []*Tile, pos Vec2) [4]Edge {
-	edges := [4]Edge{}
-	positions := [4]Vec2{
-		{pos.X, pos.Y - 1},
-		{pos.X + 1, pos.Y},
-		{pos.X, pos.Y + 1},
-		{pos.X - 1, pos.Y},
-	}
-
-	for i, p := range positions {
-		neighbour := getTileAtPosition(tiles, p)
-		if neighbour != nil {
-			edges[i] = neighbour.Edges[(i+2)%4]
-		}
-	}
-
-	return edges
-}
-
-func getTileAtPosition(tiles []*Tile, pos Vec2) *Tile {
-	for _, tile := range tiles {
-		if tile.Position == pos {
-			return tile
-		}
-	}
-
-	return nil
-}
-
-func findNextPosition(tiles []*Tile) (Vec2, error) {
-	maxLen := int(math.Sqrt(float64(len(tiles)))) - 1
-	nextX := 0
-	nextY := 0
-	for _, tile := range tiles {
-		if tile.Position.X > nextX {
-			nextX = tile.Position.X
-			nextY = 0
-		}
-
-		if tile.Position.Y > nextY && tile.Position.X == nextX {
-			nextY = tile.Position.Y
-		}
-	}
-	nextY++
-
-	if nextY > maxLen {
-		nextX++
-		nextY = 0
-
-		if nextX > maxLen {
-			return Vec2{}, errors.New("all tiles placed")
-		}
-	}
-
-	return Vec2{nextX, nextY}, nil
 }
 
 type Vec2 struct {
@@ -222,19 +197,42 @@ func (e Edge) Equals(other Edge) bool {
 }
 
 type Tile struct {
-	ID       int
-	Data     [][]rune
-	Position Vec2
-	Edges    [4]Edge
+	ID            int
+	Data          [][]rune
+	Position      Vec2
+	Edges         [4]Edge
+	PossibleEdges [8]Edge
+	ops           []string
 }
 
 func NewTile(id int, data [][]rune) *Tile {
-	return &Tile{
+	tile := &Tile{
 		ID:       id,
 		Data:     data,
 		Position: Vec2{-1, -1},
 		Edges:    edgesFromData(data),
+		ops:      []string{},
 	}
+
+	tile.Flip()
+	flipEdges := edgesFromData(tile.Data)
+	tile.Flip()
+
+	possibleEdges := [8]Edge{}
+	for i := range tile.Edges {
+		possibleEdges[i] = tile.Edges[i]
+		possibleEdges[i+4] = flipEdges[i]
+	}
+	tile.PossibleEdges = possibleEdges
+
+	// fmt.Printf("%d\n", id)
+	// for _, edge := range possibleEdges {
+	// 	fmt.Println(string(edge))
+	// }
+	// fmt.Println()
+	// TODO: Debug flip edges
+
+	return tile
 }
 
 func (t *Tile) Flip() {
@@ -242,40 +240,124 @@ func (t *Tile) Flip() {
 	newData := make([][]rune, len)
 
 	for i, row := range t.Data {
-		newData[len-(i+1)] = row
+		newData[len-i-1] = row
 	}
 
 	t.Data = newData
 	t.Edges = edgesFromData(newData)
+	t.ops = append(t.ops, "flip")
 }
 
 func (t *Tile) Rotate() {
 	len := len(t.Data)
 	newData := make([][]rune, len)
+	for i := range newData {
+		newData[i] = make([]rune, len)
+	}
 
-	for _, row := range t.Data {
-		for j, r := range row {
-			newData[j] = append(newData[j], r)
+	for y := range t.Data {
+		for x := range t.Data[y] {
+			newData[y][x] = t.Data[len-x-1][y]
 		}
 	}
 
 	t.Data = newData
 	t.Edges = edgesFromData(newData)
+	t.ops = append(t.ops, "rotate")
 }
 
 func edgesFromData(data [][]rune) [4]Edge {
 	len := len(data)
-	top := data[0]
-	bottom := data[len-1]
+	top := make([]rune, len)
+	copy(top, data[0])
+	bottom := make([]rune, len)
+	copy(bottom, data[len-1])
 
 	right := make([]rune, len)
 	left := make([]rune, len)
 	for i, row := range data {
 		right[i] = row[len-1]
-		left[i] = row[0]
+		left[len-i-1] = row[0]
 	}
 
-	return [4]Edge{top, right, bottom, left}
+	return [4]Edge{top, right, reverse(bottom), left}
+}
+
+func reverse(runes []rune) []rune {
+	len := len(runes)
+	newRunes := make([]rune, len)
+	for i := range runes {
+		newRunes[len-i-1] = runes[i]
+	}
+
+	return newRunes
+}
+
+type Grid struct {
+	Tiles [][]*Tile
+	Width int
+}
+
+func NewGrid(tileCount int) *Grid {
+	width := int(math.Sqrt(float64(tileCount)))
+	tiles := make([][]*Tile, width)
+	for i := range tiles {
+		tiles[i] = make([]*Tile, width)
+	}
+
+	return &Grid{
+		Tiles: tiles,
+		Width: width,
+	}
+}
+
+func (g *Grid) GetNextPositions() []Vec2 {
+	positions := []Vec2{}
+
+	for y := range g.Tiles {
+		for x := range g.Tiles[y] {
+			if g.Tiles[y][x] != nil {
+				continue
+			}
+
+			if x > 0 && g.Tiles[y][x-1] != nil {
+				positions = append(positions, Vec2{x, y})
+			}
+
+			if x == 0 && y > 0 && g.Tiles[y-1][x] != nil {
+				positions = append(positions, Vec2{x, y})
+			}
+
+			if x == 0 && y > 0 && g.Tiles[y-1][x] == nil {
+				return positions
+			}
+		}
+	}
+
+	return positions
+}
+
+func (g *Grid) FindNeighbourEdges(pos Vec2) [4]Edge {
+	edges := [4]Edge{}
+	positions := [4]Vec2{
+		{pos.X, pos.Y - 1},
+		{pos.X + 1, pos.Y},
+		{pos.X, pos.Y + 1},
+		{pos.X - 1, pos.Y},
+	}
+
+	for i, p := range positions {
+		if p.X < 0 || p.Y < 0 || p.X >= g.Width || p.Y >= g.Width {
+			continue
+		}
+
+		neighbour := g.Tiles[p.Y][p.X]
+		if neighbour != nil {
+			edges[i] = reverse(neighbour.Edges[(i+2)%4])
+		}
+	}
+
+	return edges
 }
 
 const exampleInput = `Tile 2311:

@@ -28,6 +28,7 @@ func initTcell() tcell.Screen {
 }
 
 func drawTiles(s tcell.Screen, tiles []*Tile) {
+	s.Clear()
 	for _, tile := range tiles {
 		drawTile(s, tile)
 	}
