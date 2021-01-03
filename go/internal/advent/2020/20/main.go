@@ -24,13 +24,53 @@ func main() {
 	result := part1Shortcut(tiles)
 	fmt.Printf("Scenario 1: %d\n", result)
 
-	// Scenario 2
-	screen := initTcell()
-	defer screen.Fini()
+	// Example 2
+	exampleTiles2 := parseTiles(exampleInput)
+	exampleGrid2, err := positionTiles(exampleTiles2)
+	if err != nil {
+		panic(err)
+	}
+	exampleImage2 := exampleGrid2.GenerateImage()
+	exampleImage2.ReplaceAllDirectionMatches(nessieWindow, 'X')
+	fmt.Println(exampleImage2.String())
+	exampleResult2 := exampleImage2.CountOccurances('#')
+	fmt.Printf("Example 2: %d\n", exampleResult2)
 
-	waitForEsc(screen, func(s tcell.Screen, quit <-chan struct{}) {
-		positionTiles(tiles, s, quit)
-	})
+	// Scenario 2
+	tiles2 := parseTiles(input)
+	grid2, err := positionTiles(tiles2)
+	if err != nil {
+		panic(err)
+	}
+	image2 := grid2.GenerateImage()
+	image2.ReplaceAllDirectionMatches(nessieWindow, 'X')
+	fmt.Println(image2.String())
+	result2 := image2.CountOccurances('#')
+	fmt.Printf("Scenario 2: %d\n", result2)
+
+	// Uncomment for animation
+	// screen := initTcell()
+	// defer screen.Fini()
+
+	// waitForEsc(screen, func(s tcell.Screen, quit <-chan struct{}) {
+	// 	positionTiles(tiles, s, quit)
+	// })
+}
+
+const nessiePattern = `                  # 
+#    ##    ##    ###
+ #  #  #  #  #  #   `
+
+var nessieWindow = patternToWindow(nessiePattern)
+
+func patternToWindow(pattern string) SearchWindow {
+	rows := strings.Split(pattern, "\n")
+	data := [][]rune{}
+	for _, row := range rows {
+		data = append(data, []rune(row))
+	}
+
+	return SearchWindow(data)
 }
 
 func buildTileMatchMap(tiles []*Tile) map[int][]*Tile {
@@ -132,7 +172,7 @@ func parseTile(input string) *Tile {
 	return NewTile(id, data)
 }
 
-func positionTiles(tiles []*Tile, s tcell.Screen, quit <-chan struct{}) {
+func positionAndDrawTiles(tiles []*Tile, s tcell.Screen, quit <-chan struct{}) (*Grid, error) {
 	corners := findCornerPieces(tiles)
 	corner := corners[0]
 	for i := 0; i < 4; i++ {
@@ -144,11 +184,10 @@ func positionTiles(tiles []*Tile, s tcell.Screen, quit <-chan struct{}) {
 		for {
 			nextPositions := grid.GetNextPositions()
 			if len(nextPositions) == 0 {
-				fmt.Println("Done!")
-				return
+				return grid, nil
 			}
 
-			if !attachTile(grid, tiles, nextPositions, s, quit) {
+			if !attachTileAndDraw(grid, tiles, nextPositions, s, quit) {
 				resetTiles(tiles)
 				s.Clear()
 				break
@@ -158,7 +197,34 @@ func positionTiles(tiles []*Tile, s tcell.Screen, quit <-chan struct{}) {
 		corner.Rotate()
 	}
 
-	fmt.Println("No layout found")
+	return nil, fmt.Errorf("no layout found")
+}
+
+func positionTiles(tiles []*Tile) (*Grid, error) {
+	corners := findCornerPieces(tiles)
+	corner := corners[0]
+	for i := 0; i < 4; i++ {
+		corner.Position = Vec2{0, 0}
+
+		grid := NewGrid(len(tiles))
+		grid.Tiles[0][0] = corner
+
+		for {
+			nextPositions := grid.GetNextPositions()
+			if len(nextPositions) == 0 {
+				return grid, nil
+			}
+
+			if !attachTile(grid, tiles, nextPositions) {
+				resetTiles(tiles)
+				break
+			}
+		}
+
+		corner.Rotate()
+	}
+
+	return nil, fmt.Errorf("no layout found")
 }
 
 func resetTiles(tiles []*Tile) {
@@ -167,7 +233,7 @@ func resetTiles(tiles []*Tile) {
 	}
 }
 
-func attachTile(grid *Grid, tiles []*Tile, positions []Vec2, s tcell.Screen, quit <-chan struct{}) bool {
+func attachTileAndDraw(grid *Grid, tiles []*Tile, positions []Vec2, s tcell.Screen, quit <-chan struct{}) bool {
 	for _, tile := range tiles {
 		if tile.Position != (Vec2{-1, -1}) {
 			continue
@@ -190,18 +256,12 @@ func attachTile(grid *Grid, tiles []*Tile, positions []Vec2, s tcell.Screen, qui
 			// }
 
 			if canAttach(tile, neighbourEdges) {
-				if !couldAttach(tile, neighbourEdges) {
-					panic("could attach error")
-				}
 				drawTiles(s, tiles)
 				grid.Tiles[pos.Y][pos.X] = tile
 				return true
 			}
 			for i := 0; i < 4; i++ {
 				if tile.Rotate(); canAttach(tile, neighbourEdges) {
-					if !couldAttach(tile, neighbourEdges) {
-						panic("could attach error")
-					}
 					drawTiles(s, tiles)
 					grid.Tiles[pos.Y][pos.X] = tile
 					return true
@@ -209,19 +269,56 @@ func attachTile(grid *Grid, tiles []*Tile, positions []Vec2, s tcell.Screen, qui
 			}
 
 			if tile.Flip(); canAttach(tile, neighbourEdges) {
-				if !couldAttach(tile, neighbourEdges) {
-					panic("could attach error")
-				}
 				drawTiles(s, tiles)
 				grid.Tiles[pos.Y][pos.X] = tile
 				return true
 			}
 			for i := 0; i < 4; i++ {
 				if tile.Rotate(); canAttach(tile, neighbourEdges) {
-					if !couldAttach(tile, neighbourEdges) {
-						panic("could attach error")
-					}
 					drawTiles(s, tiles)
+					grid.Tiles[pos.Y][pos.X] = tile
+					return true
+				}
+			}
+
+			tile.Position = Vec2{-1, -1}
+		}
+	}
+
+	return false
+}
+
+func attachTile(grid *Grid, tiles []*Tile, positions []Vec2) bool {
+	for _, tile := range tiles {
+		if tile.Position != (Vec2{-1, -1}) {
+			continue
+		}
+
+		for _, pos := range positions {
+			neighbourEdges := grid.FindNeighbourEdges(pos)
+			tile.Position = pos
+
+			// if !couldAttach(tile, neighbourEdges) {
+			// 	continue
+			// }
+
+			if canAttach(tile, neighbourEdges) {
+				grid.Tiles[pos.Y][pos.X] = tile
+				return true
+			}
+			for i := 0; i < 4; i++ {
+				if tile.Rotate(); canAttach(tile, neighbourEdges) {
+					grid.Tiles[pos.Y][pos.X] = tile
+					return true
+				}
+			}
+
+			if tile.Flip(); canAttach(tile, neighbourEdges) {
+				grid.Tiles[pos.Y][pos.X] = tile
+				return true
+			}
+			for i := 0; i < 4; i++ {
+				if tile.Rotate(); canAttach(tile, neighbourEdges) {
 					grid.Tiles[pos.Y][pos.X] = tile
 					return true
 				}
@@ -438,6 +535,153 @@ func (g *Grid) FindNeighbourEdges(pos Vec2) [4]Edge {
 	}
 
 	return edges
+}
+
+func (g *Grid) GenerateImage() *Image {
+	tileWidth := len(g.Tiles[0][0].Data)
+	imageData := [][]rune{}
+	for _, tileRow := range g.Tiles {
+		for rowCursor := 0; rowCursor < tileWidth; rowCursor++ {
+			if rowCursor == 0 || rowCursor == tileWidth-1 {
+				continue
+			}
+
+			imageRow := []rune{}
+			for _, tile := range tileRow {
+				for i, r := range tile.Data[rowCursor] {
+					// if i == 0 {
+					// 	imageRow = append(imageRow, ' ')
+					// }
+
+					if i == 0 || i == tileWidth-1 {
+						continue
+					}
+
+					imageRow = append(imageRow, r)
+				}
+			}
+			imageData = append(imageData, imageRow)
+		}
+		// imageData = append(imageData, []rune(""))
+	}
+
+	return &Image{imageData}
+}
+
+type SearchWindow [][]rune
+
+type Image struct {
+	Data [][]rune
+}
+
+func (i *Image) String() string {
+	builder := strings.Builder{}
+	for _, row := range i.Data {
+		builder.WriteString(string(row))
+		builder.WriteString("\n")
+	}
+
+	return builder.String()
+}
+
+func (i *Image) Rotate() {
+	len := len(i.Data)
+	newData := make([][]rune, len)
+	for i := range newData {
+		newData[i] = make([]rune, len)
+	}
+
+	for y := range i.Data {
+		for x := range i.Data[y] {
+			newData[y][x] = i.Data[len-x-1][y]
+		}
+	}
+
+	i.Data = newData
+}
+
+func (i *Image) Flip() {
+	len := len(i.Data)
+	newData := make([][]rune, len)
+
+	for i, row := range i.Data {
+		newData[len-i-1] = row
+	}
+
+	i.Data = newData
+}
+
+func (im *Image) ReplaceMatches(window SearchWindow, replacement rune) bool {
+	didReplace := false
+	windowWidth := len(window[0])
+	windowHeight := len(window)
+	for y := 0; y+windowHeight < len(im.Data); y++ {
+		for x := 0; x+windowWidth < len(im.Data[0]); x++ {
+			if matchesWindow(im.Data, window, x, y) {
+				didReplace = true
+				replaceWindow(im.Data, window, x, y, replacement)
+			}
+		}
+	}
+
+	return didReplace
+}
+
+func (im *Image) ReplaceAllDirectionMatches(window SearchWindow, replacement rune) {
+	for i := 0; i < 4; i++ {
+		if im.ReplaceMatches(nessieWindow, replacement) {
+			break
+		}
+		im.Rotate()
+	}
+
+	im.Flip()
+	for i := 0; i < 4; i++ {
+		if im.ReplaceMatches(nessieWindow, replacement) {
+			break
+		}
+		im.Rotate()
+	}
+}
+
+func matchesWindow(data [][]rune, window SearchWindow, x, y int) bool {
+	for wy, windowRow := range window {
+		for wx, windowRune := range windowRow {
+			if windowRune == ' ' {
+				continue
+			}
+
+			r := data[y+wy][x+wx]
+			if r != windowRune {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func replaceWindow(data [][]rune, window SearchWindow, x, y int, replacement rune) {
+	for wy, windowRow := range window {
+		for wx, windowRune := range windowRow {
+			if windowRune != ' ' {
+				data[y+wy][x+wx] = replacement
+			}
+		}
+	}
+}
+
+func (im *Image) CountOccurances(want rune) int {
+	sum := 0
+	for _, row := range im.Data {
+		for _, r := range row {
+			if r == want {
+				sum++
+			}
+		}
+	}
+
+	return sum
 }
 
 const exampleInput = `Tile 2311:
