@@ -1,0 +1,46 @@
+(in-package #:advent-of-code)
+
+(defun file-to-list (filename)
+  (with-open-file (stream filename)
+    (loop for line = (read-line stream nil)
+          while line
+          collect line)))
+
+(defun calc-diff (values)
+  (let ((previous (car values)))
+    (loop for x in values
+	  for diff = (- x previous)
+	  do (setq previous x)
+	 collect diff)))
+
+(defun calc-window-diff (values)
+  (let ((previous 0)
+	(counter 0))
+    (loop repeat (- (list-length values) 2)
+	  for w1 = (nth counter values)
+	  for w2 = (nth (+ counter 1) values)
+	  for w3 = (nth (+ counter 2) values)
+	  for sum = (+ w1 w2 w3)
+	  for diff = (- sum previous)
+	  do (setq previous sum) (setq counter (+ counter 1))
+	  collect diff)))
+
+(defun count-positive (values)
+  (let ((count 0))
+    (dolist (x values count)
+      (if (> x 0) (setq count (+ 1 count)))
+    )))
+
+(defun solve-01 ()
+  (let* ((input (file-to-list "01.txt"))
+	 (numbers (mapcar 'parse-integer input))
+	 (diffs (calc-diff numbers))
+	 (result (count-positive diffs)))
+    result))
+
+(defun solve-01b ()
+  (let* ((input (file-to-list "01.txt"))
+	 (numbers (mapcar 'parse-integer input))
+	 (diffs (cdr (calc-window-diff numbers)))
+	 (result (count-positive diffs)))
+    result))
