@@ -7,3 +7,5 @@
 build/
 
 aof-code-*
+
+*.fasl

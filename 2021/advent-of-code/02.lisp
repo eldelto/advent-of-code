@@ -1,0 +1,52 @@
+(in-package #:advent-of-code)
+
+(defun parse-command (raw-command)
+  (let* ((split-string (uiop:split-string raw-command :separator " "))
+	 (command (car split-string))
+	 (amount (parse-integer (second split-string))))
+    (list command amount)))
+
+(defun accumulate-positions (commands)
+  (let ((position 0)
+	(depth 0))
+    (loop for c in commands
+	  do (let ((command (car c))
+		   (amount (second c)))
+	       (cond
+		 ((string= command "forward") (setq position (+ position amount)))
+		 ((string= command "down") (setq depth (+ depth amount)))
+		 ((string= command "up") (setq depth (- depth amount)))
+		 )
+	       ))
+    (list position depth)))
+
+(defun accumulate-positions-aim (commands)
+  (let ((position 0)
+	(depth 0)
+	(aim 0))
+    (loop for c in commands
+	  do (let ((command (car c))
+		   (amount (second c)))
+	       (cond
+		 ((string= command "forward")
+		  (setq position (+ position amount))
+		  (setq depth (+ depth (* aim amount))))
+		 ((string= command "down") (setq aim (+ aim amount)))
+		 ((string= command "up") (setq aim (- aim amount)))
+		 )
+	       ))
+    (list position depth)))
+
+(defun solve-02 ()
+  (let* ((raw-commands (file-to-list "02.txt"))
+ 	 (commands (mapcar 'parse-command raw-commands))
+	 (position (accumulate-positions commands))
+	 (result (apply '* position)))
+    result))
+
+(defun solve-02b ()
+  (let* ((raw-commands (file-to-list "02.txt"))
+ 	 (commands (mapcar 'parse-command raw-commands))
+	 (position (accumulate-positions-aim commands))
+	 (result (apply '* position)))
+    result))
