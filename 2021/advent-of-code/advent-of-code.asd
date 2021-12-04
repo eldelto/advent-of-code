@@ -8,4 +8,6 @@
   :serial t
   :depends-on ("uiop")
   :components ((:file "package")
-               (:file "01")))
+               (:file "01")
+	       (:file "02")
+	       (:file "03")))
