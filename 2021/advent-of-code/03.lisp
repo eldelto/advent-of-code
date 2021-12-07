@@ -25,11 +25,11 @@
   (let ((binary-list (counts-to-binary-list counts len)))
     (binary-list-to-string binary-list)))
 
-(defun binary-not (binary-str)
-    (binary-list-to-string (loop for c across binary-str
-	  collect (if (char= c #\0)
+(defun binary-not (binary-list)
+    (loop for x in binary-list
+	  collect (if (= x 0)
 		 1
-		 0))))
+		 0)))
 
 (defun filter (f list)
   (let ((result '()))
@@ -43,7 +43,7 @@
       (car numbers)
       (let* ((counts (apply #'mapcar #'+ numbers))
 	     (binary-list (counts-to-binary-list counts (/ (list-length numbers) 2)))
-	     (wanted-number (car binary-list)))
+	     (wanted-number (nth index binary-list)))
 	(find-oxygen-generator-rating
 	 (filter (lambda (x) (= (nth index x) wanted-number)) numbers)
 	 (1+ index)))))
@@ -53,11 +53,10 @@
       (car numbers)
       (let* ((counts (apply #'mapcar #'+ numbers))
 	     (binary-list (counts-to-binary-list counts (/ (list-length numbers) 2)))
-	     (wanted-number (car binary-list)))
+	     (wanted-number (nth index (binary-not binary-list))))
 	(find-co2-scrubber-rating
-	 (filter (lambda (x) (not (= (nth index x) wanted-number))) numbers)
+	 (filter (lambda (x) (= (nth index x) wanted-number)) numbers)
 	 (1+ index)))))
-
 
 (defun solve-03 ()
   (let* ((input (file-to-list "03.txt"))
@@ -71,14 +70,11 @@
     result))
 
 (defun solve-03b ()
-  (let* ((input (file-to-list "03-test.txt"))
+  (let* ((input (file-to-list "03.txt"))
 	 (numbers (mapcar #'binary-string-to-integer-list input))
-	 (counts (apply #'mapcar #'+ numbers))
-	 (oxygen-binary-list (counts-to-binary-list counts (/ (list-length numbers) 2)))
-	 (co2-binary-list (counts-to-binary-list counts (/ (list-length numbers) 2) 0))
-	 (oxygen-generator-rating-list (find-oxygen-generator-rating oxygen-binary-list numbers))
-	 (co2-scrubber-rating-list (find-co2-scrubber-rating co2-binary-list numbers))
+	 (oxygen-generator-rating-list (find-oxygen-generator-rating numbers))
+	 (co2-scrubber-rating-list (find-co2-scrubber-rating numbers))
 	 (oxygen-generator-rating (binary-list-to-integer oxygen-generator-rating-list))
 	 (co2-scrubber-rating (binary-list-to-integer co2-scrubber-rating-list))
 	 (result (* oxygen-generator-rating co2-scrubber-rating)))
-   (list result oxygen-binary-list counts)))
+   result))

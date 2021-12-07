@@ -6,8 +6,9 @@
   :license  "Specify license here"
   :version "0.0.1"
   :serial t
-  :depends-on ("uiop")
+  :depends-on ("uiop" "alexandria")
   :components ((:file "package")
                (:file "01")
 	       (:file "02")
-	       (:file "03")))
+	       (:file "03")
+	       (:file "04")))
