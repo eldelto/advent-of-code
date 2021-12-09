@@ -25,7 +25,6 @@
 		crab-list 'calculate-fuel-for-position)))
     fuel))
 
-
 (defun solve-07b ()
   (let* ((rows (file-to-list "07.txt"))
 	 (crab-str-list (uiop:split-string (car rows) :separator ","))
