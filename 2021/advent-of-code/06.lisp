@@ -29,8 +29,3 @@
 	 (new-fish-state-list (run-fish-simulation fish-state-list 256))
 	 (result (apply '+ new-fish-state-list)))
     result))
-
-
-
-
-
