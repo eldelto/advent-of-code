@@ -32,3 +32,4 @@
 	 (fuel (calculate-cheapest-position
 		crab-list 'calculate-fuel-for-position2)))
     fuel))
+
