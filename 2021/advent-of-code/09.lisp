@@ -1,0 +1,51 @@
+(in-package #:advent-of-code)
+
+(defun parse-matrix (lines)
+  (let* ((y-len (list-length lines))
+	(x-len (list-length (string-to-chars (car lines))))
+	(matrix (make-array (list y-len x-len))))
+    (loop for line in lines
+	  for y from 0
+	  do (loop for value in
+			     (mapcar 'digit-char-p (string-to-chars line))
+		   for x from 0
+		   do (setf (aref matrix y x) value)))
+    matrix))
+
+(defun matrix-neighbours (matrix y x)
+  (let ((neighbours '()))
+    (if (> y 0)
+	(push (aref matrix (1- y) x) neighbours))
+    (if (> x 0)
+	(push (aref matrix y (1- x)) neighbours))
+    (if (< y (1- (array-dimension matrix 0)))
+	(push (aref matrix (1+ y) x) neighbours))
+    (if (< x (1- (array-dimension matrix 1)))
+	(push (aref matrix y (1+ x)) neighbours))
+    neighbours))
+    
+(defun find-valleys (matrix)
+  (let ((valleys '()))
+    (loop for y from 0 to (1- (array-dimension matrix 0))
+	  do (loop for x from 0 to (1- (array-dimension matrix 1))
+		   do (let ((value (aref matrix y x))
+			    (neighbours (matrix-neighbours matrix y x)))
+			(if (not (remove-if (lambda (x) (> x value)) neighbours))
+			    (push (list value (list y x)) valleys)))))
+    valleys))
+
+(defun solve-09 ()
+  (let* ((rows (file-to-list "09.txt"))
+	 (matrix (parse-matrix rows))
+	 (valleys (find-valleys matrix))
+	 (risk-levels (mapcar (lambda (x) (1+ (car x))) valleys))
+	 (result (apply '+ risk-levels)))
+    result))
+	      
+(defun solve-09b ()
+  (let* ((rows (file-to-list "09.txt"))
+	 (matrix (parse-matrix rows))
+	 (valleys (find-valleys matrix))
+	 (risk-levels (mapcar (lambda (x) (1+ (car x))) valleys))
+	 (result (apply '+ risk-levels)))
+    result))
