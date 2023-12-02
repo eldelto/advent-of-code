@@ -9,7 +9,7 @@ import (
 	. "github.com/eldelto/advent-of-code/2023/testutils"
 )
 
-var part1Test, part1, part2Test, part2 = InputsForDay(1)
+var input01, part1Test01, part2Test01 = InputsForDay(1)
 
 func findFirstDigit(s string) int {
 	for _, r := range s {
@@ -73,56 +73,38 @@ func findRealHiddenNumber(s string) int {
 	return firstMatch*10 + lastMatch
 }
 
-func forEach[A, B any](a []A, f func(a A) B) []B {
-	result := make([]B, len(a))
-	for i := range a {
-		result[i] = f(a[i])
-	}
-
-	return result
-}
-
-func sum(l []int) int {
-	sum := 0
-	for _, n := range l {
-		sum += n
-	}
-
-	return sum
-}
-
 func Test01Part1Test(t *testing.T) {
-	lines, err := InputToLines(part1Test)
+	lines, err := InputToLines(part1Test01)
 	AssertNoError(t, err, "InputToLines")
 
-	numbers := forEach(lines, findHiddenNumber)
-	sum := sum(numbers)
+	numbers := Map(lines, findHiddenNumber)
+	sum := Sum(numbers)
 	AssertEquals(t, 142, sum, "sum")
 }
 
 func Test01Part1(t *testing.T) {
-	lines, err := InputToLines(part1)
+	lines, err := InputToLines(input01)
 	AssertNoError(t, err, "InputToLines")
 
-	numbers := forEach(lines, findHiddenNumber)
-	sum := sum(numbers)
+	numbers := Map(lines, findHiddenNumber)
+	sum := Sum(numbers)
 	AssertEquals(t, 55029, sum, "sum")
 }
 
 func Test01Part2Test(t *testing.T) {
-	lines, err := InputToLines(part2Test)
+	lines, err := InputToLines(part2Test01)
 	AssertNoError(t, err, "InputToLines")
 
-	numbers := forEach(lines, findRealHiddenNumber)
-	sum := sum(numbers)
+	numbers := Map(lines, findRealHiddenNumber)
+	sum := Sum(numbers)
 	AssertEquals(t, 281, sum, "sum")
 }
 
 func Test01Part2(t *testing.T) {
-	lines, err := InputToLines(part2)
+	lines, err := InputToLines(input01)
 	AssertNoError(t, err, "InputToLines")
 
-	numbers := forEach(lines, findRealHiddenNumber)
-	sum := sum(numbers)
+	numbers := Map(lines, findRealHiddenNumber)
+	sum := Sum(numbers)
 	AssertEquals(t, 55686, sum, "sum")
 }
