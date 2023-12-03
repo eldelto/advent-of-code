@@ -57,3 +57,17 @@ func Sum[T constraints.Integer](l []T) T {
 
 	return sum
 }
+
+func Unique[T comparable](l []T) []T {
+	set := map[T]struct{}{}
+	for _, entry := range l {
+		set[entry] = struct{}{}
+	}
+
+	result := []T{}
+	for k := range set {
+		result = append(result, k)
+	}
+
+	return result
+}
