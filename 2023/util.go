@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"golang.org/x/exp/constraints"
@@ -70,4 +71,23 @@ func Unique[T comparable](l []T) []T {
 	}
 
 	return result
+}
+
+func StringsToUInts(strs []string) ([]uint, error) {
+	result := []uint{}
+	for i, str := range strs {
+		str = strings.TrimSpace(str)
+		if str == "" {
+			continue
+		}
+
+		x, err := strconv.ParseUint(str, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse uint at index %d '%s': %w", i, str, err)
+		}
+
+		result = append(result, uint(x))
+	}
+
+	return result, nil
 }
