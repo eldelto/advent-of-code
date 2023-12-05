@@ -145,7 +145,7 @@ func Test02Part1(t *testing.T) {
 }
 
 func Test02Part2Test(t *testing.T) {
-	lines, err := InputToLines(part1Test02)
+	lines, err := InputToLines(part2Test02)
 	AssertNoError(t, err, "InputToLines")
 
 	games, err := MapWithErr(lines, parseCubeGame)

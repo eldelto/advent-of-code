@@ -19,10 +19,19 @@ func InputsForDay(day uint) (string, string, string) {
 		fmt.Sprintf("%02d-part2-test.txt", day)
 }
 
-func InputToLines(name string) ([]string, error) {
+func InputToString(name string) (string, error) {
 	content, err := inputsFS.ReadFile(filepath.Join("inputs", name))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file '%s': %w", name, err)
+		return "", fmt.Errorf("failed to read file '%s': %w", name, err)
+	}
+
+	return string(content), nil
+}
+
+func InputToLines(name string) ([]string, error) {
+	content, err := InputToString(name)
+	if err != nil {
+		return nil, nil
 	}
 
 	return strings.Split(string(content), "\n"), nil

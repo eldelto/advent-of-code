@@ -128,6 +128,7 @@ func Test04Part2Test(t *testing.T) {
 	games, err := MapWithErr(lines, parseCardGame)
 	AssertNoError(t, err, "parseCardGame")
 
+	matchCache = map[uint]uint{}
 	cards := recursiveScratchCards(games, games)
 	AssertEquals(t, uint(30), cards, "total cards")
 }
@@ -139,6 +140,7 @@ func Test04Part2(t *testing.T) {
 	games, err := MapWithErr(lines, parseCardGame)
 	AssertNoError(t, err, "parseCardGame")
 
+	matchCache = map[uint]uint{}
 	cards := recursiveScratchCards(games, games)
 	AssertEquals(t, uint(14427616), cards, "total cards")
 }
