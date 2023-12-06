@@ -68,6 +68,15 @@ func Sum[T constraints.Integer](l []T) T {
 	return sum
 }
 
+func Product[T constraints.Integer](l []T) T {
+	var sum T = 1
+	for _, n := range l {
+		sum *= n
+	}
+
+	return sum
+}
+
 func Unique[T comparable](l []T) []T {
 	set := map[T]struct{}{}
 	for _, entry := range l {
@@ -77,6 +86,15 @@ func Unique[T comparable](l []T) []T {
 	result := []T{}
 	for k := range set {
 		result = append(result, k)
+	}
+
+	return result
+}
+
+func ZipMap[A, B, C any](a []A, b []B, f func(a A, b B) C) []C {
+	result := make([]C, min(len(a), len(b)))
+	for i := range a {
+		result[i] = f(a[i], b[i])
 	}
 
 	return result
