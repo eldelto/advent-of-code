@@ -31,7 +31,7 @@ func InputToString(name string) (string, error) {
 func InputToLines(name string) ([]string, error) {
 	content, err := InputToString(name)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	return strings.Split(string(content), "\n"), nil
