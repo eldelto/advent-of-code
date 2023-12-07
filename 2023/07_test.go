@@ -71,11 +71,7 @@ func (h *camelCardHand) compare(other camelCardHand) int {
 func handType(cards [5]camelCard, withJoker bool) camelCardHandType {
 	cardCount := map[camelCard]uint{}
 	for _, card := range cards {
-		count, ok := cardCount[card]
-		if !ok {
-			count = 0
-		}
-		cardCount[card] = count + 1
+		cardCount[card] = cardCount[card] + 1
 	}
 
 	var highest uint
