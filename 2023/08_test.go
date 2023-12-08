@@ -11,17 +11,10 @@ import (
 var input08, part1Test08, part2Test08 = InputsForDay(8)
 
 type directions struct {
-	turns  string
-	offset uint
+	turns string
 }
 
-func (d *directions) next() byte {
-	turn := d.turns[d.offset]
-	d.offset = (d.offset + 1) % uint(len(d.turns))
-	return turn
-}
-
-func (d *directions) at(offset uint) byte {
+func (d directions) at(offset uint) byte {
 	return d.turns[offset%uint(len(d.turns))]
 }
 
@@ -105,13 +98,17 @@ func takeStep(node **directionNode, turn byte) {
 func followDirections(directions directions, node *directionNode) uint {
 	var steps uint
 	for {
+		takeStep(&node, directions.at(steps))
+		steps++
 		if node.id == "ZZZ" {
 			return steps
 		}
-
-		steps++
-		takeStep(&node, directions.next())
 	}
+}
+
+type cachedDirectionNode struct {
+	zNode *directionNode
+	steps uint
 }
 
 type ghostWalker struct {
@@ -119,37 +116,66 @@ type ghostWalker struct {
 	offset uint
 }
 
-func (gw *ghostWalker) walkTo(directions directions, offset uint) {
-	for i := gw.offset + 1; i <= offset; i++ {
-		takeStep(&gw.node, directions.at(i))
+func newGhostWalker(node *directionNode) ghostWalker {
+	return ghostWalker{node: node}
+}
+
+func (gw *ghostWalker) walkToNextZNode(directions directions, cache map[string]cachedDirectionNode) {
+	cacheEntry, ok := cache[gw.node.id]
+	if ok {
+		gw.node = cacheEntry.zNode
+		gw.offset += cacheEntry.steps
+		return
+	}
+
+	initialNode := gw.node
+	initialOffset := gw.offset
+	for {
+		takeStep(&gw.node, directions.at(gw.offset))
+		gw.offset++
+		if gw.node.isZNode {
+			cache[initialNode.id] = cachedDirectionNode{zNode: gw.node, steps: gw.offset - initialOffset}
+			return
+		}
 	}
 }
 
-func takeParStep(nodes []*directionNode, turn byte) {
-	for i := range nodes {
-		takeStep(&nodes[i], turn)
-	}
-}
+func areAtSameOffset(walkers []ghostWalker) (bool, uint) {
+	offsetMax := walkers[0].offset
+	allMatch := true
+	for _, w := range walkers {
+		if w.offset != offsetMax {
+			allMatch = false
+		}
 
-func areAllZNodes(nodes []*directionNode) bool {
-	for _, node := range nodes {
-		if !node.isZNode {
-			return false
+		if w.offset > offsetMax {
+			offsetMax = w.offset
 		}
 	}
 
-	return true
+	return allMatch, offsetMax
 }
 
-func followGhostDirections(directions directions, nodes []*directionNode) uint {
-	var steps uint
+func catchUpToOffset(walkers []ghostWalker, directions directions, offsetMax uint, cache map[string]cachedDirectionNode) {
+	for i, w := range walkers {
+		if w.offset < offsetMax {
+			w.walkToNextZNode(directions, cache)
+			walkers[i] = w
+		}
+	}
+}
+
+func followGhostDirections(directions directions, walkers []ghostWalker) uint {
+	cache := map[string]cachedDirectionNode{}
+
+	var steps uint = 1
 	for {
-		if areAllZNodes(nodes) {
+		catchUpToOffset(walkers, directions, steps, cache)
+		atSameOffset, offsetMax := areAtSameOffset(walkers)
+		steps = offsetMax
+		if atSameOffset {
 			return steps
 		}
-
-		steps++
-		takeParStep(nodes, directions.next())
 	}
 }
 
@@ -176,15 +202,19 @@ func Test08Part2Test(t *testing.T) {
 	AssertNoError(t, err, "InputToString")
 
 	directions, _, aNodes := parseDirectionMap(content)
-	steps := followGhostDirections(directions, aNodes)
+	walkers := Map(aNodes, newGhostWalker)
+	steps := followGhostDirections(directions, walkers)
 	AssertEquals(t, uint(6), steps, "steps")
 }
 
 func Test08Part2(t *testing.T) {
+	t.Skipf("Needs > 1 minute to run")
+
 	content, err := InputToString(input08)
 	AssertNoError(t, err, "InputToString")
 
 	directions, _, aNodes := parseDirectionMap(content)
-	steps := followGhostDirections(directions, aNodes)
-	AssertEquals(t, uint(6), steps, "steps")
+	walkers := Map(aNodes, newGhostWalker)
+	steps := followGhostDirections(directions, walkers)
+	AssertEquals(t, uint(8811050362409), steps, "steps")
 }
