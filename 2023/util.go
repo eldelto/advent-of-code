@@ -37,6 +37,12 @@ func InputToLines(name string) ([]string, error) {
 	return strings.Split(string(content), "\n"), nil
 }
 
+func ForEach[A any](a []A, f func(a A)) {
+	for i := range a {
+		f(a[i])
+	}
+}
+
 func Map[A, B any](a []A, f func(a A) B) []B {
 	result := make([]B, len(a))
 	for i := range a {
