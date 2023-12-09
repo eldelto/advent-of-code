@@ -106,6 +106,10 @@ func ZipMap[A, B, C any](a []A, b []B, f func(a A, b B) C) []C {
 	return result
 }
 
+func StringToUInts(str, separator string) ([]uint, error) {
+	return StringsToUInts(strings.Split(str, separator))
+}
+
 func StringsToUInts(strs []string) ([]uint, error) {
 	result := []uint{}
 	for i, str := range strs {
@@ -120,6 +124,29 @@ func StringsToUInts(strs []string) ([]uint, error) {
 		}
 
 		result = append(result, uint(x))
+	}
+
+	return result, nil
+}
+
+func StringToInts(str, separator string) ([]int, error) {
+	return StringsToInts(strings.Split(str, separator))
+}
+
+func StringsToInts(strs []string) ([]int, error) {
+	result := []int{}
+	for i, str := range strs {
+		str = strings.TrimSpace(str)
+		if str == "" {
+			continue
+		}
+
+		x, err := strconv.ParseInt(str, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse int at index %d '%s': %w", i, str, err)
+		}
+
+		result = append(result, int(x))
 	}
 
 	return result, nil
