@@ -349,7 +349,7 @@ func Test10Part2(t *testing.T) {
 
 	luke.walk()
 	insideTiles := luke.walkNextToLoop(false)
-	AssertEquals(t, 1, len(insideTiles), "inside tiles")
+	AssertEquals(t, 579, len(insideTiles), "inside tiles")
 
 	// Uncomment for visualization
 	fmt.Println(luke.visualize(insideTiles))
