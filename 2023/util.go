@@ -3,6 +3,7 @@ package twentytwentythree
 import (
 	"embed"
 	"fmt"
+	"math"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -63,6 +64,17 @@ func MapWithErr[A, B any](a []A, f func(a A) (B, error)) ([]B, error) {
 	}
 
 	return result, nil
+}
+
+func Filter[A any](a []A, f func(a A) bool) []A {
+	result := []A{}
+	for _, element := range a {
+		if f(element) {
+			result = append(result, element)
+		}
+	}
+
+	return result
 }
 
 func Sum[T constraints.Integer](l []T) T {
@@ -150,4 +162,78 @@ func StringsToInts(strs []string) ([]int, error) {
 	}
 
 	return result, nil
+}
+
+func DegreeToRadians(value int) float64 {
+	return float64(value) * (math.Pi / float64(180))
+}
+
+type Vec2 struct {
+	X int
+	Y int
+}
+
+func (v Vec2) Add(o Vec2) Vec2 {
+	return Vec2{X: v.X + o.X, Y: v.Y + o.Y}
+}
+
+func (v Vec2) Scale(factor int) Vec2 {
+	return Vec2{v.X * factor, v.Y * factor}
+}
+
+func (v Vec2) Rotate(angle int) Vec2 {
+	rad := DegreeToRadians(angle)
+	fX := float64(v.X)
+	fY := float64(v.Y)
+
+	sin := math.Sin(rad)
+	cos := math.Cos(rad)
+	newX := fX*cos - fY*sin
+	newY := fX*sin + fY*cos
+
+	return Vec2{int(math.Round(newX)), int(math.Round(newY))}
+}
+
+type Direction Vec2
+
+var (
+	North = Direction{Y: -1}
+	East  = Direction{X: 1}
+	South = Direction{Y: 1}
+	West  = Direction{X: -1}
+)
+
+func DirectionFromPositions(src, dst Vec2) Direction {
+	switch {
+	case src.Y < dst.Y:
+		return North
+	case src.Y > dst.Y:
+		return South
+	case src.X < dst.X:
+		return West
+	case src.X > dst.X:
+		return East
+	}
+
+	panic("treading in place!")
+}
+
+func (d Direction) Right() Direction {
+	return Direction(Vec2(d).Rotate(90))
+}
+
+func (d Direction) Left() Direction {
+	return Direction(Vec2(d).Rotate(-90))
+}
+
+func color(msg, colorCode string) string {
+	return "\033[" + colorCode + msg + "\033[0m"
+}
+
+func Magenta(msg string) string {
+	return color(msg, "95m")
+}
+
+func Green(msg string) string {
+	return color(msg, "92m")
 }
