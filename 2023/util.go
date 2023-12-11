@@ -1,12 +1,15 @@
 package twentytwentythree
 
 import (
+	"bufio"
 	"embed"
 	"fmt"
+	"io"
 	"math"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"golang.org/x/exp/constraints"
 )
@@ -236,4 +239,44 @@ func Magenta(msg string) string {
 
 func Green(msg string) string {
 	return color(msg, "92m")
+}
+
+func ParseIntoMatrix[T any](r io.Reader,
+	f func(r rune, row, column int) (T, error)) ([][]T, error) {
+	scanner := bufio.NewScanner(r)
+	scanner.Split(bufio.ScanRunes)
+
+	matrix := [][]T{}
+	matrix = append(matrix, []T{})
+
+	column := 0
+	row := 0
+	for scanner.Scan() {
+		token := scanner.Text()
+		if token == "\n" {
+			matrix = append(matrix, []T{})
+			row++
+			column = 0
+			continue
+		}
+
+		r, _ := utf8.DecodeRuneInString(token)
+		value, err := f(r, row, column)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse %q - column=%d row=%d", r, column, row)
+		}
+
+		matrix[row] = append(matrix[row], value)
+		column++
+	}
+
+	return matrix, nil
+}
+
+func Abs[T constraints.Integer](x T) T {
+	if x < 0 {
+		return -x
+	}
+
+	return x
 }

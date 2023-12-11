@@ -1,13 +1,11 @@
 package twentytwentythree
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
 	"testing"
-	"unicode/utf8"
 
 	. "github.com/eldelto/advent-of-code/2023/testutils"
 )
@@ -38,11 +36,6 @@ type pipe struct {
 
 func (p *pipe) symbol() rune {
 	return p.pipeSymbol
-}
-
-func (p *pipe) isStraight() bool {
-	delta := Vec2(p.openingA).Add(Vec2(p.openingB))
-	return delta.X == 0 && delta.Y == 0
 }
 
 func parsePipeTile(r rune) (pipeMazeTile, error) {
@@ -81,14 +74,8 @@ type pipeWalker struct {
 	tiles            [][]pipeMazeTile
 }
 
-func newPipeWalker(height, width int) *pipeWalker {
-	tiles := make([][]pipeMazeTile, height)
-	for i := range tiles {
-		tiles[i] = make([]pipeMazeTile, width)
-	}
-
+func newPipeWalker() *pipeWalker {
 	return &pipeWalker{
-		tiles:        tiles,
 		loopSegments: []loopSegment{},
 	}
 }
@@ -249,52 +236,24 @@ func (l *pipeWalker) visualize(insideTiles map[Vec2]pipeMazeTile) string {
 	return b.String()
 }
 
-func parseIntoMatrix[T any](r io.Reader, matrix [][]T,
-	f func(r rune, row, column int) (T, error)) error {
-	scanner := bufio.NewScanner(r)
-	scanner.Split(bufio.ScanRunes)
+func parsePipeWalker(r io.Reader) (*pipeWalker, error) {
+	walker := newPipeWalker()
 
-	column := 0
-	row := 0
-	for scanner.Scan() {
-		token := scanner.Text()
-		if token == "\n" {
-			row++
-			column = 0
-			continue
-		}
-
-		r, _ := utf8.DecodeRuneInString(token)
-		value, err := f(r, row, column)
+	tiles, err := ParseIntoMatrix(r, func(r rune, row, column int) (pipeMazeTile, error) {
+		tile, err := parsePipeTile(r)
 		if err != nil {
-			return fmt.Errorf("failed to parse %q - column=%d row=%d", r, column, row)
+			return nil, err
 		}
 
-		matrix[row][column] = value
-		column++
-	}
+		if _, ok := tile.(*startingPosition); ok {
+			walker.startingPosition = Vec2{X: column, Y: row}
+			walker.currentPosition = walker.startingPosition
+			walker.previousPosition = walker.currentPosition
+		}
 
-	return nil
-}
-
-func parsePipeWalker(r io.Reader, height, width int) (*pipeWalker, error) {
-	walker := newPipeWalker(height, width)
-
-	err := parseIntoMatrix(r, walker.tiles,
-		func(r rune, row, column int) (pipeMazeTile, error) {
-			tile, err := parsePipeTile(r)
-			if err != nil {
-				return nil, err
-			}
-
-			if _, ok := tile.(*startingPosition); ok {
-				walker.startingPosition = Vec2{X: column, Y: row}
-				walker.currentPosition = walker.startingPosition
-				walker.previousPosition = walker.currentPosition
-			}
-
-			return tile, nil
-		})
+		return tile, nil
+	})
+	walker.tiles = tiles
 
 	return walker, err
 }
@@ -304,7 +263,7 @@ func Test10Part1Test(t *testing.T) {
 	AssertNoError(t, err, "open file")
 	defer file.Close()
 
-	luke, err := parsePipeWalker(file, 5, 5)
+	luke, err := parsePipeWalker(file)
 	AssertNoError(t, err, "parsePipeWalker")
 
 	loopLength := luke.walk()
@@ -316,7 +275,7 @@ func Test10Part1(t *testing.T) {
 	AssertNoError(t, err, "open file")
 	defer file.Close()
 
-	luke, err := parsePipeWalker(file, 140, 140)
+	luke, err := parsePipeWalker(file)
 	AssertNoError(t, err, "parsePipeWalker")
 
 	loopLength := luke.walk()
@@ -328,7 +287,7 @@ func Test10Part2Test(t *testing.T) {
 	AssertNoError(t, err, "open file")
 	defer file.Close()
 
-	luke, err := parsePipeWalker(file, 10, 20)
+	luke, err := parsePipeWalker(file)
 	AssertNoError(t, err, "parsePipeWalker")
 
 	luke.walk()
@@ -344,7 +303,7 @@ func Test10Part2(t *testing.T) {
 	AssertNoError(t, err, "open file")
 	defer file.Close()
 
-	luke, err := parsePipeWalker(file, 140, 140)
+	luke, err := parsePipeWalker(file)
 	AssertNoError(t, err, "parsePipeWalker")
 
 	luke.walk()
