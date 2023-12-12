@@ -98,6 +98,17 @@ func Product[T constraints.Integer](l []T) T {
 	return sum
 }
 
+func Max[T constraints.Integer](l []T) T {
+	max := l[0]
+	for _, n := range l {
+		if n > max {
+			max = n
+		}
+	}
+
+	return max
+}
+
 func Unique[T comparable](l []T) []T {
 	set := map[T]struct{}{}
 	for _, entry := range l {
@@ -119,6 +130,15 @@ func ZipMap[A, B, C any](a []A, b []B, f func(a A, b B) C) []C {
 	}
 
 	return result
+}
+
+func Repeat[T any](l []T, count int) []T {
+	res := []T{}
+	for i := 0; i < count; i++ {
+		res = append(res, l...)
+	}
+
+	return res
 }
 
 func StringToUInts(str, separator string) ([]uint, error) {
