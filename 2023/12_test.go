@@ -25,6 +25,18 @@ func parseSpringCondition(line string) (springCondition, error) {
 	return springCondition{records, expected}, nil
 }
 
+func parseUnfoldedSpringCondition(line string) (springCondition, error) {
+	condition, err := parseSpringCondition(line)
+	if err != nil {
+		return springCondition{}, err
+	}
+
+	condition.records = strings.Repeat(condition.records+"?", 5)
+	condition.records = condition.records[:len(condition.records)-1]
+	condition.expected = Repeat(condition.expected, 5)
+	return condition, nil
+}
+
 func (sc *springCondition) canBeValid() bool {
 	placeholderCount := strings.Count(sc.records, "?")
 	damageCount := strings.Count(sc.records, "#")
@@ -33,19 +45,119 @@ func (sc *springCondition) canBeValid() bool {
 		return false
 	}
 
-	damageClusters := strings.Split(strings.ReplaceAll(sc.records, "?", "."), ".")
-	damageClusters = Filter(damageClusters, func(s string) bool { return s != "" })
-	max := Max(sc.expected)
-	for _, cluster := range damageClusters {
-		if len(cluster) > int(max) {
-			return false
+	expectedLen := len(sc.expected)
+	damageCount = 0
+	i := 0
+	for j, r := range sc.records {
+		if r == '?' {
+			return true
+		} else if r == '#' {
+			damageCount++
+		}
+		if r == '.' || j == len(sc.records)-1 {
+			if damageCount > 0 {
+				if i >= expectedLen {
+					return false
+				}
+				if damageCount != int(sc.expected[i]) {
+					return false
+				}
+				damageCount = 0
+				i++
+			}
 		}
 	}
 
 	return true
 }
 
+func (sc *springCondition) canBeValid2() bool {
+	placeholderCount := strings.Count(sc.records, "?")
+	damageCount := strings.Count(sc.records, "#")
+	maxDamage := int(Sum(sc.expected))
+	if damageCount > maxDamage || placeholderCount+damageCount < maxDamage {
+		return false
+	}
+
+	hashCount := 0
+	expectedIndex := 0
+	for _, r := range sc.records {
+		if expectedIndex >= len(sc.expected) {
+			return true
+		}
+
+		switch r {
+		case '#':
+			hashCount++
+		case '.':
+			if hashCount != 0 {
+				if hashCount > int(sc.expected[expectedIndex]) {
+					return false
+				}
+				expectedIndex++
+			}
+			hashCount = 0
+		case '?':
+			return true
+		}
+	}
+
+	// minDamageClusters := strings.Split(strings.ReplaceAll(sc.records, "?", "."), ".")
+	// minDamageClusters = Filter(minDamageClusters, func(s string) bool { return s != "" })
+	// for i, cluster := range minDamageClusters {
+	// 	if i >= len(sc.expected) {
+	// 		break
+	// 	}
+	// 	if len(cluster) > int(sc.expected[i]) {
+	// 		return false
+	// 	}
+	// 	if len(cluster) != int(sc.expected[i]) {
+	// 		return true
+	// 	}
+	// }
+
+	// maxDamageClusters := strings.Split(strings.ReplaceAll(sc.records, "?", "#"), ".")
+	// maxDamageClusters = Filter(maxDamageClusters, func(s string) bool { return s != "" })
+	// for i, cluster := range maxDamageClusters {
+	// 	if i >= len(sc.expected) {
+	// 		break
+	// 	}
+	// 	if strings.Count(cluster, "#") < int(sc.expected[i]) {
+	// 		return false
+	// 	}
+	// }
+
+	return true
+}
+
 func (sc *springCondition) isValid() bool {
+	expectedLen := len(sc.expected)
+	damageCount := 0
+	i := 0
+	for j, r := range sc.records {
+		if r == '?' {
+			return false
+		} else if r == '#' {
+			damageCount++
+		}
+		if r == '.' || j == len(sc.records)-1 {
+			if damageCount > 0 {
+				if i >= expectedLen {
+					return false
+				}
+				if damageCount != int(sc.expected[i]) {
+					return false
+				}
+				damageCount = 0
+				i++
+			}
+		}
+	}
+
+	return i == expectedLen
+}
+
+func (sc *springCondition) isValid2() bool {
 	if strings.Contains(sc.records, "?") {
 		return false
 	}
@@ -130,10 +242,22 @@ func Test12Part2Test(t *testing.T) {
 	lines, err := InputToLines(part2Test12)
 	AssertNoError(t, err, "InputToLines")
 
-	conditions, err := MapWithErr(lines, parseSpringCondition)
+	conditions, err := MapWithErr(lines, parseUnfoldedSpringCondition)
 	AssertNoError(t, err, "parseSpringCondition")
 
-	permutations := Map(conditions, findValidUnfoldedSpringConditionPermutation)
+	permutations := Map(conditions, findValidSpringConditionPermutation)
+	sum := Sum(permutations)
+	AssertEquals(t, 525152, sum, "sum of permutations")
+}
+
+func Test12Part2(t *testing.T) {
+	lines, err := InputToLines(input12)
+	AssertNoError(t, err, "InputToLines")
+
+	conditions, err := MapWithErr(lines, parseUnfoldedSpringCondition)
+	AssertNoError(t, err, "parseSpringCondition")
+
+	permutations := Map(conditions, findValidSpringConditionPermutation)
 	sum := Sum(permutations)
 	AssertEquals(t, 525152, sum, "sum of permutations")
 }
