@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	"golang.org/x/exp/constraints"
+	"golang.org/x/sync/errgroup"
 )
 
 //go:embed inputs
@@ -139,6 +140,32 @@ func Repeat[T any](l []T, count int) []T {
 	}
 
 	return res
+}
+
+func ParallelMap[A, B any](a []A, f func(a A) B) []B {
+	c := make(chan B)
+	group := errgroup.Group{}
+	group.SetLimit(8)
+
+	for _, item := range a {
+		x := item
+		group.Go(func() error {
+			c <- f(x)
+			return nil
+		})
+	}
+
+	go func() {
+		group.Wait()
+		close(c)
+	}()
+
+	result := []B{}
+	for i := range c {
+		result = append(result, i)
+	}
+
+	return result
 }
 
 func StringToUInts(str, separator string) ([]uint, error) {

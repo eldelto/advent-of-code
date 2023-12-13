@@ -245,7 +245,7 @@ func Test12Part2Test(t *testing.T) {
 	conditions, err := MapWithErr(lines, parseUnfoldedSpringCondition)
 	AssertNoError(t, err, "parseSpringCondition")
 
-	permutations := Map(conditions, findValidSpringConditionPermutation)
+	permutations := ParallelMap(conditions, findValidSpringConditionPermutation)
 	sum := Sum(permutations)
 	AssertEquals(t, 525152, sum, "sum of permutations")
 }
