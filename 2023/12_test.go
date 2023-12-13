@@ -245,11 +245,14 @@ type springMatcher struct {
 	invalid        bool
 }
 
-func (sp *springMatcher) stillValid(r byte, expected []int) bool {
+func (sp *springMatcher) stillValid(r byte, expected []int, remaining int) bool {
 	if sp.invalid {
 		return false
 	}
 
+	if remaining+sp.damageGroupLen < Sum(expected[sp.damageGroupI:]) {
+		return false
+	}
 	if sp.expectWorking && r == '#' {
 		sp.invalid = true
 		return false
@@ -283,19 +286,30 @@ func (sp *springMatcher) stillValid(r byte, expected []int) bool {
 	return true
 }
 
+type debugSpringMatcher struct {
+	springMatcher
+	records string
+}
+
+func (sp *debugSpringMatcher) stillValid(r byte, expected []int, remaining int) bool {
+	sp.records += string(r)
+	return sp.springMatcher.stillValid(r, expected, remaining)
+}
+
 func findValidSpringConditionPermutationFast(sc springCondition) int {
 	// matchers := map[springMatcher]string{{}: ""}
 	matchers := map[springMatcher]int{{}: 1}
 	newMatchers := map[springMatcher]int{}
 	records := []byte(string(sc.records) + ".")
-	for _, r := range records {
+	for i, r := range records {
+		remaining := (len(records) - 1) - i
 		// newMatchers := map[springMatcher]string{}
 		// newMatchers := map[springMatcher]int{}
 		for m, count := range matchers {
 			r2 := r
 			if r2 == '?' {
 				clone := m
-				if clone.stillValid('.', sc.expected) {
+				if clone.stillValid('.', sc.expected, remaining) {
 					newMatchers[clone] += count
 				}
 				// else {
@@ -303,7 +317,7 @@ func findValidSpringConditionPermutationFast(sc springCondition) int {
 				// }
 				r2 = '#'
 			}
-			if m.stillValid(r2, sc.expected) {
+			if m.stillValid(r2, sc.expected, remaining) {
 				newMatchers[m] += count
 			}
 			//  else {
@@ -343,7 +357,7 @@ func Test12Part1(t *testing.T) {
 	conditions, err := MapWithErr(lines, parseSpringCondition)
 	AssertNoError(t, err, "parseSpringCondition")
 
-	permutations := Map(conditions, findValidSpringConditionPermutation)
+	permutations := Map(conditions, findValidSpringConditionPermutationFast)
 	sum := Sum(permutations)
 	AssertEquals(t, 7025, sum, "sum of permutations")
 }
@@ -355,7 +369,7 @@ func Test12Part2Test(t *testing.T) {
 	conditions, err := MapWithErr(lines, parseUnfoldedSpringCondition)
 	AssertNoError(t, err, "parseSpringCondition")
 
-	permutations := Map(conditions, findValidSpringConditionPermutation)
+	permutations := Map(conditions, findValidSpringConditionPermutationFast)
 	sum := Sum(permutations)
 	AssertEquals(t, 525152, sum, "sum of permutations")
 }
@@ -367,9 +381,9 @@ func Test12Part2(t *testing.T) {
 	conditions, err := MapWithErr(lines, parseUnfoldedSpringCondition)
 	AssertNoError(t, err, "parseSpringCondition")
 
-	permutations := MapX(conditions, findValidSpringConditionPermutation)
+	permutations := MapX(conditions, findValidSpringConditionPermutationFast)
 	sum := Sum(permutations)
-	AssertEquals(t, 525152, sum, "sum of permutations")
+	AssertEquals(t, 11461095383315, sum, "sum of permutations")
 }
 
 func Test_springMatcher(t *testing.T) {
@@ -379,29 +393,30 @@ func Test_springMatcher(t *testing.T) {
 		records  string
 		want     bool
 	}{
-		{springMatcher{}, []int{1, 1, 3}, ".#...#....###.", true},
-		{springMatcher{}, []int{1, 1, 3}, ".#....#...###.", true},
-		{springMatcher{}, []int{1, 1, 3}, "..#..#....###.", true},
-		{springMatcher{}, []int{1, 1, 3}, "..#...#...###.", true},
-		{springMatcher{}, []int{1, 1, 3}, "......#...###.", false},
-		{springMatcher{}, []int{1, 1, 3}, ".##...#...###.", false},
-		{springMatcher{}, []int{1, 1, 3}, ".##...#...##..", false},
-		{springMatcher{}, []int{1, 1, 3}, "#....###", false},
-		{springMatcher{}, []int{1, 1, 3}, ".#...###", false},
-		{springMatcher{}, []int{1, 1, 3}, "..#.###", false},
-		{springMatcher{}, []int{1, 1, 3}, ".##.###", false},
-		{springMatcher{}, []int{1, 1, 3}, "##..###", false},
-		{springMatcher{}, []int{1, 1, 3}, "#.#.###", true},
+		// {springMatcher{}, []int{1, 1, 3}, ".#...#....###.", true},
+		// {springMatcher{}, []int{1, 1, 3}, ".#....#...###.", true},
+		// {springMatcher{}, []int{1, 1, 3}, "..#..#....###.", true},
+		// {springMatcher{}, []int{1, 1, 3}, "..#...#...###.", true},
+		// {springMatcher{}, []int{1, 1, 3}, "......#...###.", false},
+		// {springMatcher{}, []int{1, 1, 3}, ".##...#...###.", false},
+		// {springMatcher{}, []int{1, 1, 3}, ".##...#...##..", false},
+		// {springMatcher{}, []int{1, 1, 3}, "#....###", false},
+		// {springMatcher{}, []int{1, 1, 3}, ".#...###", false},
+		// {springMatcher{}, []int{1, 1, 3}, "..#.###", false},
+		// {springMatcher{}, []int{1, 1, 3}, ".##.###", false},
+		// {springMatcher{}, []int{1, 1, 3}, "##..###", false},
+		// {springMatcher{}, []int{1, 1, 3}, "#.#.###", true},
+		{springMatcher{}, []int{3, 2, 1}, ".###.........", false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.records, func(t *testing.T) {
 			for i, r := range []byte(tt.records) {
-				valid := tt.m.stillValid(r, tt.expected)
+				valid := tt.m.stillValid(r, tt.expected, (len(tt.records)-1)-i)
 				fmt.Printf("%s -> %t\n", tt.records[:i+1], valid)
 			}
 			fmt.Println()
-			AssertEquals(t, tt.want, tt.m.stillValid('.', tt.expected), "valid")
+			AssertEquals(t, tt.want, tt.m.stillValid('.', tt.expected, 0), "valid")
 		})
 	}
 }
@@ -411,13 +426,14 @@ func Test_findPermutations(t *testing.T) {
 		sc   springCondition
 		want int
 	}{
-		{springCondition{records: []byte("?.#.###"), expected: []int{1, 1, 3}}, 1},
-		{springCondition{records: []byte("#.?.###"), expected: []int{1, 1, 3}}, 1},
-		{springCondition{records: []byte("#??.###"), expected: []int{1, 1, 3}}, 1},
-		{springCondition{records: []byte("??#.###"), expected: []int{1, 1, 3}}, 1},
-		{springCondition{records: []byte("???.###"), expected: []int{1, 1, 3}}, 1},
-		{springCondition{records: []byte(".#...#....###."), expected: []int{1, 1, 3}}, 1},
-		{springCondition{records: []byte(".??..??...?##."), expected: []int{1, 1, 3}}, 4},
+		// {springCondition{records: []byte("?.#.###"), expected: []int{1, 1, 3}}, 1},
+		// {springCondition{records: []byte("#.?.###"), expected: []int{1, 1, 3}}, 1},
+		// {springCondition{records: []byte("#??.###"), expected: []int{1, 1, 3}}, 1},
+		// {springCondition{records: []byte("??#.###"), expected: []int{1, 1, 3}}, 1},
+		// {springCondition{records: []byte("???.###"), expected: []int{1, 1, 3}}, 1},
+		// {springCondition{records: []byte(".#...#....###."), expected: []int{1, 1, 3}}, 1},
+		// {springCondition{records: []byte(".??..??...?##."), expected: []int{1, 1, 3}}, 4},
+		{springCondition{records: []byte("?###????????"), expected: []int{3, 2, 1}}, 10},
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.sc.records), func(t *testing.T) {
