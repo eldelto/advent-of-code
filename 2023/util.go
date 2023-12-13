@@ -330,6 +330,18 @@ func ParseIntoMatrix[T any](r io.Reader,
 	return matrix, nil
 }
 
+type genericTile struct {
+	symbol rune
+}
+
+func ParseGenericMatrix(r io.Reader) [][]genericTile {
+	matrix, _ := ParseIntoMatrix(r, func(r rune, row, column int) (genericTile, error) {
+		return genericTile{r}, nil
+	})
+
+	return matrix
+}
+
 func Abs[T constraints.Integer](x T) T {
 	if x < 0 {
 		return -x

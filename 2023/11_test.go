@@ -11,10 +11,6 @@ import (
 
 var input11, part1Test11, part2Test11 = InputsForDay(11)
 
-type genericTile struct {
-	symbol rune
-}
-
 type universe struct {
 	tiles    [][]genericTile
 	galaxies map[Vec2]genericTile
