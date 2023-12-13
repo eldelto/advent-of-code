@@ -57,6 +57,16 @@ func Map[A, B any](a []A, f func(a A) B) []B {
 	return result
 }
 
+func MapX[A, B any](a []A, f func(a A) B) []B {
+	result := make([]B, len(a))
+	for i := range a {
+		result[i] = f(a[i])
+		fmt.Println(i)
+	}
+
+	return result
+}
+
 func MapWithErr[A, B any](a []A, f func(a A) (B, error)) ([]B, error) {
 	result := make([]B, len(a))
 	for i := range a {
@@ -326,4 +336,10 @@ func Abs[T constraints.Integer](x T) T {
 	}
 
 	return x
+}
+
+func mapsClear[M ~map[K]V, K comparable, V any](m M) {
+	for k := range m {
+		delete(m, k)
+	}
 }
