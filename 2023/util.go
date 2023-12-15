@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"path/filepath"
 	"strconv"
@@ -33,13 +34,17 @@ func InputToString(name string) (string, error) {
 	return string(content), nil
 }
 
-func InputToLines(name string) ([]string, error) {
+func InputToLinesWithSeparator(name, separator string) ([]string, error) {
 	content, err := InputToString(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return strings.Split(string(content), "\n"), nil
+	return strings.Split(string(content), separator), nil
+}
+
+func InputToLines(name string) ([]string, error) {
+	return InputToLinesWithSeparator(name, "\n")
 }
 
 func ForEach[A any](a []A, f func(a A)) {
@@ -166,7 +171,9 @@ func ParallelMap[A, B any](a []A, f func(a A) B) []B {
 	}
 
 	go func() {
-		group.Wait()
+		if err := group.Wait(); err != nil {
+			log.Fatalf("failed to await ParallelMap: %v", err)
+		}
 		close(c)
 	}()
 
@@ -400,4 +407,59 @@ func FindRepeatingPattern[T comparable](l []T) (uint, []T) {
 	}
 
 	return 0, []T{}
+}
+
+type sortedHashMapValue[K comparable, V any] struct {
+	key   K
+	value V
+}
+
+type SortedHashMap[K comparable, V any] struct {
+	index map[K]struct{}
+	list  []sortedHashMapValue[K, V]
+}
+
+func NewSortedHashMap[K comparable, V any]() SortedHashMap[K, V] {
+	return SortedHashMap[K, V]{
+		index: map[K]struct{}{},
+		list:  []sortedHashMapValue[K, V]{},
+	}
+}
+
+func (h *SortedHashMap[K, V]) Contains(key K) bool {
+	_, ok := h.index[key]
+	return ok
+}
+
+func (h *SortedHashMap[K, V]) Update(key K, value V) {
+	if _, ok := h.index[key]; !ok {
+		h.list = append(h.list, sortedHashMapValue[K, V]{key, value})
+		h.index[key] = struct{}{}
+		return
+	}
+
+	for i, entry := range h.list {
+		if entry.key == key {
+			h.list[i] = sortedHashMapValue[K, V]{key, value}
+			return
+		}
+	}
+
+	panic("could not find indexed entry in actual list")
+}
+
+func (h *SortedHashMap[K, V]) Remove(key K) {
+	if _, ok := h.index[key]; !ok {
+		return
+	}
+
+	for i, entry := range h.list {
+		if entry.key == key {
+			h.list = append(h.list[:i], h.list[i+1:]...)
+			delete(h.index, key)
+			return
+		}
+	}
+
+	panic("could not delete indexed entry from actual list")
 }
