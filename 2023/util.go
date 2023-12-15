@@ -355,3 +355,49 @@ func mapsClear[M ~map[K]V, K comparable, V any](m M) {
 		delete(m, k)
 	}
 }
+
+func LPSArray[T comparable](l []T) []int {
+	i := 0
+	j := -1
+	result := make([]int, len(l)+1)
+	result[0] = j
+
+	for i < len(l) {
+		for j >= 0 && l[j] != l[i] {
+			j = result[j]
+		}
+
+		i++
+		j++
+		result[i] = j
+	}
+
+	return result
+}
+
+func FindRepeatingPattern[T comparable](l []T) (uint, []T) {
+	for i := 0; i < len(l); i++ {
+		lps := LPSArray(l[i:])
+
+		// Must equal max otherwise the pattern doesn't repeat until the end.
+		max := Max(lps)
+		if lps[len(lps)-1] != max {
+			continue
+		}
+
+		for j := 1; j < len(lps); j++ {
+			current := lps[j]
+			previous := lps[j-1]
+			if current <= 0 || previous <= 0 {
+				continue
+			}
+
+			// If it monotonically increases we found the first repeat.
+			if current-previous == 1 {
+				return uint(i), l[i : i+j]
+			}
+		}
+	}
+
+	return 0, []T{}
+}

@@ -9,7 +9,7 @@ import (
 	. "github.com/eldelto/advent-of-code/2023/testutils"
 )
 
-var input11, part1Test11, part2Test11 = InputsForDay(11)
+var input11, part1Test11, _ = InputsForDay(11)
 
 type universe struct {
 	tiles    [][]genericTile

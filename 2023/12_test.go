@@ -89,15 +89,15 @@ func (sp *springMatcher) stillValid(r byte, expected []int, remaining int) bool 
 	return true
 }
 
-type debugSpringMatcher struct {
-	springMatcher
-	records string
-}
+// type debugSpringMatcher struct {
+// 	springMatcher
+// 	records string
+// }
 
-func (sp *debugSpringMatcher) stillValid(r byte, expected []int, remaining int) bool {
-	sp.records += string(r)
-	return sp.springMatcher.stillValid(r, expected, remaining)
-}
+// func (sp *debugSpringMatcher) stillValid(r byte, expected []int, remaining int) bool {
+// 	sp.records += string(r)
+// 	return sp.springMatcher.stillValid(r, expected, remaining)
+// }
 
 func findValidSpringConditionPermutationFast(sc springCondition) int {
 	matchers := map[springMatcher]int{{}: 1}

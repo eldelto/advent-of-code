@@ -8,7 +8,7 @@ import (
 	. "github.com/eldelto/advent-of-code/2023/testutils"
 )
 
-var input14, part1Test14, part2Test14 = InputsForDay(14)
+var input14, part1Test14, _ = InputsForDay(14)
 
 func slideRock(matrix [][]genericTile, pos Vec2, direction Direction) bool {
 	slid := false
@@ -54,46 +54,33 @@ func slideRocks(matrix [][]genericTile, direction Direction) {
 	}
 }
 
-type cycleCounter struct {
-	value int
-	lastI int
-	cycle int
-}
-
-func cycleRocks(matrix [][]genericTile) {
-	cycles := map[int]cycleCounter{}
-	cache := map[int][][]genericTile{}
-	oldWeight := 0
+func cycleRocks(matrix [][]genericTile) int {
+	weights := []int{}
 	directions := []Direction{North, West, South, East}
-	for i := 0; i < 1000000000; i++ {
-		m, ok := cache[oldWeight]
-		if ok {
-			matrix = m
-			continue
-		}
+	for i := 0; i < 1000; i++ {
 		for _, direction := range directions {
 			slideRocks(matrix, direction)
 		}
-		weight := weighRocks(matrix)
-		cycle := cycles[weight]
-		cycles[weight] = cycleCounter{value: weight, lastI: i, cycle: i - cycle.lastI}
-		cache[oldWeight] = matrix
-		oldWeight = weight
-		// fmt.Println(weighRocks(matrix))
-		// printMatrix(matrix)
+
+		weights = append(weights, weighRocks(matrix))
+		offset, pattern := FindRepeatingPattern(weights)
+		if len(weights) > 100 && len(pattern) > 0 {
+			return pattern[(1000000000-(offset-1))%4]
+		}
 	}
-	fmt.Println(cycles)
+
+	return -1
 }
 
-func printMatrix(matrix [][]genericTile) {
-	for ri, row := range matrix {
-		for ci := range row {
-			fmt.Printf("%c", matrix[ri][ci].symbol)
-		}
-		fmt.Println()
-	}
-	fmt.Println()
-}
+// func printMatrix(matrix [][]genericTile) {
+// 	for ri, row := range matrix {
+// 		for ci := range row {
+// 			fmt.Printf("%c", matrix[ri][ci].symbol)
+// 		}
+// 		fmt.Println()
+// 	}
+// 	fmt.Println()
+// }
 
 func weighRocks(matrix [][]genericTile) int {
 	weight := 0
@@ -140,8 +127,16 @@ func Test14Part2Test(t *testing.T) {
 	defer file.Close()
 
 	matrix := ParseGenericMatrix(file)
-	cycleRocks(matrix)
+	weight := cycleRocks(matrix)
+	AssertEquals(t, 64, weight, "weight of rocks")
+}
 
-	weight := weighRocks(matrix)
-	AssertEquals(t, 136, weight, "weight of rocks")
+func Test14Part2(t *testing.T) {
+	file, err := inputsFS.Open(filepath.Join("inputs", input14))
+	AssertNoError(t, err, "open file")
+	defer file.Close()
+
+	matrix := ParseGenericMatrix(file)
+	weight := cycleRocks(matrix)
+	AssertEquals(t, 98894, weight, "weight of rocks")
 }

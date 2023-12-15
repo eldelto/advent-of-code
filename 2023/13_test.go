@@ -7,7 +7,7 @@ import (
 	. "github.com/eldelto/advent-of-code/2023/testutils"
 )
 
-var input13, part1Test13, part2Test13 = InputsForDay(13)
+var input13, part1Test13, _ = InputsForDay(13)
 
 type mirrorTiles [][]genericTile
 
