@@ -47,6 +47,17 @@ func InputToLines(name string) ([]string, error) {
 	return InputToLinesWithSeparator(name, "\n")
 }
 
+func InputToMatrix(name string) (Matrix, error) {
+	file, err := inputsFS.Open(filepath.Join("inputs", name))
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %w", name, err)
+	}
+	defer file.Close()
+
+	matrix := ParseMatrix(file)
+	return matrix, nil
+}
+
 func ForEach[A any](a []A, f func(a A)) {
 	for i := range a {
 		f(a[i])
@@ -337,13 +348,40 @@ func ParseIntoMatrix[T any](r io.Reader,
 	return matrix, nil
 }
 
-type genericTile struct {
+type GenericTile struct {
 	symbol rune
 }
 
-func ParseGenericMatrix(r io.Reader) [][]genericTile {
-	matrix, _ := ParseIntoMatrix(r, func(r rune, row, column int) (genericTile, error) {
-		return genericTile{r}, nil
+type Matrix [][]GenericTile
+
+func (m Matrix) Get(pos Vec2) GenericTile {
+	return m[pos.Y][pos.X]
+}
+
+func (m Matrix) Set(pos Vec2, value GenericTile) {
+	m[pos.Y][pos.X] = value
+}
+
+func (m Matrix) WithinBounds(pos Vec2) bool {
+	return pos.Y >= 0 && pos.Y < len(m) &&
+		pos.X >= 0 && pos.X < len(m[0])
+}
+
+func (m Matrix) String() string {
+	b := strings.Builder{}
+	for ri, row := range m {
+		for ci := range row {
+			b.WriteRune(m[ri][ci].symbol)
+		}
+		b.WriteByte('\n')
+	}
+
+	return b.String()
+}
+
+func ParseMatrix(r io.Reader) Matrix {
+	matrix, _ := ParseIntoMatrix(r, func(r rune, row, column int) (GenericTile, error) {
+		return GenericTile{r}, nil
 	})
 
 	return matrix

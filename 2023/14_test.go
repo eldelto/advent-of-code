@@ -10,7 +10,7 @@ import (
 
 var input14, part1Test14, _ = InputsForDay(14)
 
-func slideRock(matrix [][]genericTile, pos Vec2, direction Direction) bool {
+func slideRock(matrix Matrix, pos Vec2, direction Direction) bool {
 	slid := false
 	for {
 		tile := matrix[pos.Y][pos.X]
@@ -44,7 +44,7 @@ func slideRock(matrix [][]genericTile, pos Vec2, direction Direction) bool {
 	return slid
 }
 
-func slideRocks(matrix [][]genericTile, direction Direction) {
+func slideRocks(matrix Matrix, direction Direction) {
 	for ri, row := range matrix {
 		for ci := range row {
 			if matrix[ri][ci].symbol == 'O' {
@@ -54,7 +54,7 @@ func slideRocks(matrix [][]genericTile, direction Direction) {
 	}
 }
 
-func cycleRocks(matrix [][]genericTile) int {
+func cycleRocks(matrix Matrix) int {
 	weights := []int{}
 	directions := []Direction{North, West, South, East}
 	for i := 0; i < 1000; i++ {
@@ -72,17 +72,7 @@ func cycleRocks(matrix [][]genericTile) int {
 	return -1
 }
 
-// func printMatrix(matrix [][]genericTile) {
-// 	for ri, row := range matrix {
-// 		for ci := range row {
-// 			fmt.Printf("%c", matrix[ri][ci].symbol)
-// 		}
-// 		fmt.Println()
-// 	}
-// 	fmt.Println()
-// }
-
-func weighRocks(matrix [][]genericTile) int {
+func weighRocks(matrix Matrix) int {
 	weight := 0
 	for ri, row := range matrix {
 		for ci := range row {
@@ -95,14 +85,12 @@ func weighRocks(matrix [][]genericTile) int {
 	return weight
 }
 
-// TODO: Refactor to matrix type with get,set,string methods
-
 func Test14Part1Test(t *testing.T) {
 	file, err := inputsFS.Open(filepath.Join("inputs", part1Test14))
 	AssertNoError(t, err, "open file")
 	defer file.Close()
 
-	matrix := ParseGenericMatrix(file)
+	matrix := ParseMatrix(file)
 	slideRocks(matrix, North)
 
 	weight := weighRocks(matrix)
@@ -114,7 +102,7 @@ func Test14Part1(t *testing.T) {
 	AssertNoError(t, err, "open file")
 	defer file.Close()
 
-	matrix := ParseGenericMatrix(file)
+	matrix := ParseMatrix(file)
 	slideRocks(matrix, North)
 
 	weight := weighRocks(matrix)
@@ -126,7 +114,7 @@ func Test14Part2Test(t *testing.T) {
 	AssertNoError(t, err, "open file")
 	defer file.Close()
 
-	matrix := ParseGenericMatrix(file)
+	matrix := ParseMatrix(file)
 	weight := cycleRocks(matrix)
 	AssertEquals(t, 64, weight, "weight of rocks")
 }
@@ -136,7 +124,7 @@ func Test14Part2(t *testing.T) {
 	AssertNoError(t, err, "open file")
 	defer file.Close()
 
-	matrix := ParseGenericMatrix(file)
+	matrix := ParseMatrix(file)
 	weight := cycleRocks(matrix)
 	AssertEquals(t, 98894, weight, "weight of rocks")
 }

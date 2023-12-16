@@ -9,12 +9,12 @@ import (
 
 var input13, part1Test13, _ = InputsForDay(13)
 
-type mirrorTiles [][]genericTile
+type mirrorTiles [][]GenericTile
 
 func parseMirrorTiles(data string) []mirrorTiles {
 	rawTiles := strings.Split(data, "\n\n")
 	return Map(rawTiles, func(s string) mirrorTiles {
-		tiles := ParseGenericMatrix(strings.NewReader(s))
+		tiles := ParseMatrix(strings.NewReader(s))
 		return mirrorTiles(tiles)
 	})
 }

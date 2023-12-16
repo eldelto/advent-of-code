@@ -12,13 +12,13 @@ import (
 var input11, part1Test11, _ = InputsForDay(11)
 
 type universe struct {
-	tiles    [][]genericTile
-	galaxies map[Vec2]genericTile
+	tiles    [][]GenericTile
+	galaxies map[Vec2]GenericTile
 }
 
 func newUniverse() *universe {
 	return &universe{
-		galaxies: map[Vec2]genericTile{},
+		galaxies: map[Vec2]GenericTile{},
 	}
 }
 
@@ -54,8 +54,8 @@ columnsOuter:
 func parseUniverse(r io.Reader) (*universe, error) {
 	universe := newUniverse()
 
-	tiles, err := ParseIntoMatrix(r, func(r rune, row int, column int) (genericTile, error) {
-		tile := genericTile{r}
+	tiles, err := ParseIntoMatrix(r, func(r rune, row int, column int) (GenericTile, error) {
+		tile := GenericTile{r}
 		if r == '#' {
 			pos := Vec2{column, row}
 			universe.galaxies[pos] = tile
