@@ -1,8 +1,8 @@
 package twentytwentythree
 
 import (
+	"container/heap"
 	"fmt"
-	"slices"
 	"testing"
 
 	. "github.com/eldelto/advent-of-code/2023/testutils"
@@ -20,6 +20,19 @@ type aStarNode struct {
 	traversalCost int
 	estimatedCost int
 	parent        *aStarNode
+	index         int
+}
+
+func (n aStarNode) Priority() int {
+	return n.estimatedCost
+}
+
+func (n aStarNode) Index() int {
+	return n.index
+}
+
+func (n aStarNode) SetIndex(i int) {
+	n.index = i
 }
 
 func aStarHeuristic(current, target Vec2) uint {
@@ -70,28 +83,29 @@ func possibleNodes(matrix Matrix[int], current aStarNode) []Vec2 {
 }
 
 type key struct {
-	pos    Vec2
-	parent Vec2
+	pos Vec2
+	// parent Vec2
 }
 
 func aStar(matrix Matrix[int]) aStarNode {
 	current := aStarNode{pos: Vec2{0, 0}}
 	target := Vec2{len(matrix) - 1, len(matrix[0]) - 1}
 
-	open := []aStarNode{}
+	// open := []aStarNode{}
+	open := PriorityQueue[aStarNode]{}
 	closed := map[key]struct{}{} //map[Vec2]aStarNode{current.pos: current}
 
 	for current.pos != target {
 		// fmt.Println(current.pos)
 		k := key{pos: current.pos}
-		if current.parent != nil {
-			k.parent = current.parent.pos
-		}
+		// if current.parent != nil {
+		// 	k.parent = current.parent.pos
+		// }
 		closed[k] = struct{}{} //current
 
 		possibleNodes := possibleNodes(matrix, current)
 		for _, possibleNode := range possibleNodes {
-			k := key{pos: possibleNode, parent: current.pos}
+			k := key{pos: possibleNode} //, parent: current.pos}
 			if _, ok := closed[k]; ok {
 				// fmt.Println("skip")
 				continue
@@ -100,18 +114,22 @@ func aStar(matrix Matrix[int]) aStarNode {
 			traversalCost := current.traversalCost + matrix.Get(possibleNode)
 			estimatedCost := int(aStarHeuristic(possibleNode, target)) + traversalCost
 			parent := current
-			open = append(open, aStarNode{
+			newOpenNode := aStarNode{
 				pos:           possibleNode,
 				traversalCost: traversalCost,
 				estimatedCost: int(estimatedCost),
-				parent:        &parent})
-			slices.SortFunc(open, func(a, b aStarNode) int {
-				return a.estimatedCost - b.estimatedCost
-			})
+				parent:        &parent}
+
+			// open = append(open, newOpenNode)
+			heap.Push(&open, newOpenNode)
+			// slices.SortFunc(open, func(a, b aStarNode) int {
+			// 	return a.estimatedCost - b.estimatedCost
+			// })
 		}
 
-		current = open[0]
-		open = open[1:]
+		newCurrent, _ := heap.Pop(&open).(aStarNode)
+		current = newCurrent
+		// open = open[1:]
 		// for i := 0; i < len(open); i++ {
 		// 	next := open[i]
 		// 	if _, ok := closed[next.pos]; !ok {

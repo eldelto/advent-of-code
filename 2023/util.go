@@ -2,6 +2,7 @@ package twentytwentythree
 
 import (
 	"bufio"
+	"container/heap"
 	"embed"
 	"fmt"
 	"io"
@@ -536,4 +537,48 @@ func (h *SortedHashMap[K, V]) Remove(key K) {
 	}
 
 	panic("could not delete indexed entry from actual list")
+}
+
+type PriorityItem interface {
+	comparable
+	Priority() int
+	Index() int
+	SetIndex(int)
+}
+
+// A PriorityQueue implements heap.Interface and holds Items.
+type PriorityQueue[T PriorityItem] []T
+
+func (pq PriorityQueue[T]) Len() int { return len(pq) }
+
+func (pq PriorityQueue[T]) Less(i, j int) bool {
+	return pq[i].Priority() < pq[j].Priority()
+}
+
+func (pq PriorityQueue[T]) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+	pq[i].SetIndex(i)
+	pq[j].SetIndex(j)
+}
+
+func (pq *PriorityQueue[T]) Push(x any) {
+	n := len(*pq)
+	item := x.(T)
+	item.SetIndex(n)
+	*pq = append(*pq, item)
+}
+
+func (pq *PriorityQueue[T]) Pop() any {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	old[n-1] = *new(T)
+	item.SetIndex(-1)
+	*pq = old[0 : n-1]
+	return item
+}
+
+// update modifies the priority and value of an Item in the queue.
+func (pq *PriorityQueue[T]) update(item T) {
+	heap.Fix(pq, item.Index())
 }
