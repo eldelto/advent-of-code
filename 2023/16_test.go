@@ -17,7 +17,7 @@ func (lr *lightRay) step() {
 	lr.pos = lr.pos.Add(Vec2(lr.direction))
 }
 
-func forwardLightRay(m Matrix, lr *lightRay) []lightRay {
+func forwardLightRay(m Matrix[GenericTile], lr *lightRay) []lightRay {
 	if !m.WithinBounds(lr.pos) {
 		return nil
 	}
@@ -67,7 +67,7 @@ func forwardLightRay(m Matrix, lr *lightRay) []lightRay {
 	return splitRays
 }
 
-func energiseTiles(m Matrix, initialLightRay lightRay) int {
+func energiseTiles(m Matrix[GenericTile], initialLightRay lightRay) int {
 	lightRayCache := map[lightRay]struct{}{}
 	energisedTiles := map[Vec2]struct{}{}
 
@@ -96,7 +96,7 @@ func energiseTiles(m Matrix, initialLightRay lightRay) int {
 	return len(energisedTiles)
 }
 
-func energiseMaximumTiles(m Matrix) int {
+func energiseMaximumTiles(m Matrix[GenericTile]) int {
 	maxTiles := 0
 	for ri := range m {
 		if tiles := energiseTiles(m, lightRay{pos: Vec2{0, ri}, direction: East}); tiles > maxTiles {

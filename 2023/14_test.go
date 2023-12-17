@@ -10,7 +10,7 @@ import (
 
 var input14, part1Test14, _ = InputsForDay(14)
 
-func slideRock(matrix Matrix, pos Vec2, direction Direction) bool {
+func slideRock(matrix Matrix[GenericTile], pos Vec2, direction Direction) bool {
 	slid := false
 	for {
 		tile := matrix[pos.Y][pos.X]
@@ -44,7 +44,7 @@ func slideRock(matrix Matrix, pos Vec2, direction Direction) bool {
 	return slid
 }
 
-func slideRocks(matrix Matrix, direction Direction) {
+func slideRocks(matrix Matrix[GenericTile], direction Direction) {
 	for ri, row := range matrix {
 		for ci := range row {
 			if matrix[ri][ci].symbol == 'O' {
@@ -54,7 +54,7 @@ func slideRocks(matrix Matrix, direction Direction) {
 	}
 }
 
-func cycleRocks(matrix Matrix) int {
+func cycleRocks(matrix Matrix[GenericTile]) int {
 	weights := []int{}
 	directions := []Direction{North, West, South, East}
 	for i := 0; i < 1000; i++ {
@@ -72,7 +72,7 @@ func cycleRocks(matrix Matrix) int {
 	return -1
 }
 
-func weighRocks(matrix Matrix) int {
+func weighRocks(matrix Matrix[GenericTile]) int {
 	weight := 0
 	for ri, row := range matrix {
 		for ci := range row {

@@ -47,7 +47,17 @@ func InputToLines(name string) ([]string, error) {
 	return InputToLinesWithSeparator(name, "\n")
 }
 
-func InputToMatrix(name string) (Matrix, error) {
+func InputIntoMatrix[T any](name string, f MatrixItemParser[T]) (Matrix[T], error) {
+	file, err := inputsFS.Open(filepath.Join("inputs", name))
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %w", name, err)
+	}
+	defer file.Close()
+
+	return ParseIntoMatrix(file, f)
+}
+
+func InputToMatrix(name string) (Matrix[GenericTile], error) {
 	file, err := inputsFS.Open(filepath.Join("inputs", name))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %w", name, err)
@@ -251,8 +261,16 @@ type Vec2 struct {
 	Y int
 }
 
+func (v Vec2) Len() uint {
+	return uint(math.Round(math.Abs(math.Sqrt(float64(v.X*v.X + v.Y*v.Y)))))
+}
+
 func (v Vec2) Add(o Vec2) Vec2 {
 	return Vec2{X: v.X + o.X, Y: v.Y + o.Y}
+}
+
+func (v Vec2) Sub(o Vec2) Vec2 {
+	return Vec2{X: v.X - o.X, Y: v.Y - o.Y}
 }
 
 func (v Vec2) Scale(factor int) Vec2 {
@@ -270,6 +288,10 @@ func (v Vec2) Rotate(angle int) Vec2 {
 	newY := fX*sin + fY*cos
 
 	return Vec2{int(math.Round(newX)), int(math.Round(newY))}
+}
+
+func (v Vec2) ManhattenDistance(o Vec2) uint {
+	return Abs(v.X+o.X) + Abs(v.Y+o.Y)
 }
 
 type Direction Vec2
@@ -316,12 +338,57 @@ func Green(msg string) string {
 	return color(msg, "92m")
 }
 
-func ParseIntoMatrix[T any](r io.Reader,
-	f func(r rune, row, column int) (T, error)) ([][]T, error) {
+type GenericTile struct {
+	symbol rune
+}
+
+type Matrix[T any] [][]T
+
+func (m Matrix[T]) Get(pos Vec2) T {
+	return m[pos.Y][pos.X]
+}
+
+func (m Matrix[T]) Set(pos Vec2, value T) {
+	m[pos.Y][pos.X] = value
+}
+
+func (m Matrix[T]) WithinBounds(pos Vec2) bool {
+	return pos.Y >= 0 && pos.Y < len(m) &&
+		pos.X >= 0 && pos.X < len(m[0])
+}
+
+func (m Matrix[T]) String() string {
+	b := strings.Builder{}
+	for ri, row := range m {
+		for ci := range row {
+			b.WriteString(fmt.Sprintf("%v", m[ri][ci]))
+		}
+		b.WriteByte('\n')
+	}
+
+	return b.String()
+}
+
+type MatrixItemParser[T any] func(r rune, row, column int) (T, error)
+
+func GenericTileParser(r rune, row, column int) (GenericTile, error) {
+	return GenericTile{r}, nil
+}
+
+func IntParser(r rune, row, column int) (int, error) {
+	value, err := strconv.ParseInt(string(r), 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse %q as int at row=%d column=%d: %w",
+			r, row, column, err)
+	}
+	return int(value), nil
+}
+
+func ParseIntoMatrix[T any](r io.Reader, f MatrixItemParser[T]) (Matrix[T], error) {
 	scanner := bufio.NewScanner(r)
 	scanner.Split(bufio.ScanRunes)
 
-	matrix := [][]T{}
+	matrix := Matrix[T]{}
 	matrix = append(matrix, []T{})
 
 	column := 0
@@ -348,38 +415,7 @@ func ParseIntoMatrix[T any](r io.Reader,
 	return matrix, nil
 }
 
-type GenericTile struct {
-	symbol rune
-}
-
-type Matrix [][]GenericTile
-
-func (m Matrix) Get(pos Vec2) GenericTile {
-	return m[pos.Y][pos.X]
-}
-
-func (m Matrix) Set(pos Vec2, value GenericTile) {
-	m[pos.Y][pos.X] = value
-}
-
-func (m Matrix) WithinBounds(pos Vec2) bool {
-	return pos.Y >= 0 && pos.Y < len(m) &&
-		pos.X >= 0 && pos.X < len(m[0])
-}
-
-func (m Matrix) String() string {
-	b := strings.Builder{}
-	for ri, row := range m {
-		for ci := range row {
-			b.WriteRune(m[ri][ci].symbol)
-		}
-		b.WriteByte('\n')
-	}
-
-	return b.String()
-}
-
-func ParseMatrix(r io.Reader) Matrix {
+func ParseMatrix(r io.Reader) Matrix[GenericTile] {
 	matrix, _ := ParseIntoMatrix(r, func(r rune, row, column int) (GenericTile, error) {
 		return GenericTile{r}, nil
 	})
@@ -387,12 +423,12 @@ func ParseMatrix(r io.Reader) Matrix {
 	return matrix
 }
 
-func Abs[T constraints.Integer](x T) T {
+func Abs[T constraints.Integer](x T) uint {
 	if x < 0 {
-		return -x
+		return uint(-x)
 	}
 
-	return x
+	return uint(x)
 }
 
 func mapsClear[M ~map[K]V, K comparable, V any](m M) {
