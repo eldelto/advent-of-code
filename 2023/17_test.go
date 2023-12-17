@@ -69,6 +69,7 @@ func (n *crucibleItem) SetIndex(i int) {
 type nodeKey struct {
 	pos       Vec2
 	direction Direction
+	stepCount int
 }
 
 func aStar2(matrix Matrix[int]) crucible {
@@ -80,29 +81,30 @@ func aStar2(matrix Matrix[int]) crucible {
 	target := Vec2{len(matrix) - 1, len(matrix[0]) - 1}
 
 	open := PriorityQueue[*crucibleItem]{}
-	closed := map[nodeKey]struct{}{}
+	closed := map[nodeKey]crucible{}
 
 	for current.pos != target {
-		closed[nodeKey{current.pos, current.direction}] = struct{}{}
+		k := nodeKey{
+			pos:       current.pos,
+			direction: current.direction,
+			stepCount: current.stepCount,
+		}
+		closed[k] = current
 
 		possiblePaths := possiblePaths(matrix, current)
 		fmt.Println(current)
 		// fmt.Println(possiblePaths)
 		// fmt.Println()
 		for _, path := range possiblePaths {
-			k := nodeKey{pos: path.pos, direction: path.direction}
-			if _, ok := closed[k]; ok {
-				// fmt.Println("skip")
-				continue
-			}
-
 			traversalCost := current.heatLoss + matrix.Get(path.pos)
-			// estimatedCost := int(aStarHeuristic(path.pos, target)) + traversalCost
-			estimatedCost := traversalCost
 			stepCount := 1
 			if path.direction == current.direction {
 				stepCount = current.stepCount + 1
 			}
+
+			// estimatedCost := int(aStarHeuristic(path.pos, target)) + traversalCost
+			estimatedCost := traversalCost
+
 			// parent := current
 			newOpenNode := crucible{
 				pos:       path.pos,
@@ -112,19 +114,36 @@ func aStar2(matrix Matrix[int]) crucible {
 				// parent:    &parent,
 			}
 
+			k := nodeKey{
+				pos:       newOpenNode.pos,
+				direction: newOpenNode.direction,
+				stepCount: newOpenNode.stepCount,
+			}
+			if _, ok := closed[k]; ok { //&& newOpenNode.heatLoss-5 > other.heatLoss {
+				// fmt.Println("skip")
+				continue
+			}
+
 			heap.Push(&open, &crucibleItem{crucible: newOpenNode, estimatedCost: estimatedCost})
 		}
 
-		newCurrentItem, _ := heap.Pop(&open).(*crucibleItem)
-		current = newCurrentItem.crucible
-		// for {
-		// 	newCurrentItem, _ := heap.Pop(&open).(*crucibleItem)
-		// 	k := nodeKey{newCurrentItem.crucible.pos, newCurrentItem.crucible.direction}
-		// 	if _, ok := closed[k]; !ok {
-		// 		current = newCurrentItem.crucible
-		// 		break
-		// 	}
-		// }
+		// newCurrentItem, _ := heap.Pop(&open).(*crucibleItem)
+		// current = newCurrentItem.crucible
+		for {
+			newCurrentItem, _ := heap.Pop(&open).(*crucibleItem)
+			c := newCurrentItem.crucible
+			k := nodeKey{
+				pos:       c.pos,
+				direction: c.direction,
+				stepCount: c.stepCount,
+			}
+			if _, ok := closed[k]; ok { //&& c.heatLoss-5 > other.heatLoss {
+				continue
+			}
+
+			current = newCurrentItem.crucible
+			break
+		}
 	}
 
 	return current
@@ -332,5 +351,6 @@ func Test17Part1(t *testing.T) {
 
 	node := aStar2(matrix)
 	// printPath(matrix, node)
-	AssertEquals(t, 102, node.heatLoss, "node")
+	AssertEquals(t, 1155, node.heatLoss, "node")
+	// 1119 < answer < 1172
 }
