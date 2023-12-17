@@ -311,9 +311,9 @@ func DirectionFromPositions(src, dst Vec2) Direction {
 	case src.Y > dst.Y:
 		return South
 	case src.X < dst.X:
-		return West
-	case src.X > dst.X:
 		return East
+	case src.X > dst.X:
+		return West
 	}
 
 	panic("treading in place!")
