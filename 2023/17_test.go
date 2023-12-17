@@ -72,7 +72,12 @@ type nodeKey struct {
 	stepCount int
 }
 
-func aStar2(matrix Matrix[int]) crucible {
+func aStarHeuristic(current, target Vec2) uint {
+	// return current.ManhattenDistance(target)
+	return target.Sub(current).Len()
+}
+
+func aStar(matrix Matrix[int]) crucible {
 	current := crucible{
 		pos:       Vec2{0, 0},
 		direction: East,
@@ -102,8 +107,8 @@ func aStar2(matrix Matrix[int]) crucible {
 				stepCount = current.stepCount + 1
 			}
 
-			// estimatedCost := int(aStarHeuristic(path.pos, target)) + traversalCost
-			estimatedCost := traversalCost
+			estimatedCost := int(aStarHeuristic(path.pos, target)) + traversalCost
+			// estimatedCost := traversalCost
 
 			// parent := current
 			newOpenNode := crucible{
@@ -178,7 +183,7 @@ func Test17Part1Test(t *testing.T) {
 	matrix, err := InputIntoMatrix(part1Test17, IntParser)
 	AssertNoError(t, err, "InputIntoMatrix")
 
-	node := aStar2(matrix)
+	node := aStar(matrix)
 	// printPath(matrix, node)
 	// fmt.Println(matrix.String())
 	// printCruciblePath(matrix, node)
@@ -189,8 +194,7 @@ func Test17Part1(t *testing.T) {
 	matrix, err := InputIntoMatrix(input17, IntParser)
 	AssertNoError(t, err, "InputIntoMatrix")
 
-	node := aStar2(matrix)
+	node := aStar(matrix)
 	// printPath(matrix, node)
 	AssertEquals(t, 1155, node.heatLoss, "node")
-	// 1119 < answer < 1172
 }
