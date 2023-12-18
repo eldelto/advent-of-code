@@ -197,14 +197,10 @@ func (c *ultraCrucible) canTurn() bool {
 
 func possibleUltraCruciblePaths(m Matrix[int], c ultraCrucible) []path {
 	paths := []path{}
-	switch {
-	case c.canGoStraight() && !c.canTurn():
+	if c.canGoStraight() {
 		paths = append(paths, path{c.pos.Add(Vec2(c.direction)), c.direction})
-	case c.canGoStraight() && c.canTurn():
-		paths = append(paths, path{c.pos.Add(Vec2(c.direction)), c.direction})
-		paths = append(paths, path{c.pos.Add(Vec2(c.direction.Left())), c.direction.Left()})
-		paths = append(paths, path{c.pos.Add(Vec2(c.direction.Right())), c.direction.Right()})
-	default:
+	}
+	if c.canTurn() {
 		paths = append(paths, path{c.pos.Add(Vec2(c.direction.Left())), c.direction.Left()})
 		paths = append(paths, path{c.pos.Add(Vec2(c.direction.Right())), c.direction.Right()})
 	}
@@ -239,21 +235,28 @@ func ultraAStar(matrix Matrix[int]) ultraCrucible {
 		direction: East,
 		stepCount: 1,
 	}
-	target := Vec2{len(matrix) - 1, len(matrix[0]) - 1}
+	target := Vec2{len(matrix[0]) - 1, len(matrix) - 1}
 
 	open := PriorityQueue[*ultraCrucibleItem]{}
 	closed := map[nodeKey]ultraCrucible{}
 
-	for current.pos != target {
-		k := nodeKey{
-			pos:       current.pos,
-			direction: current.direction,
-			stepCount: current.stepCount,
+	// Setup downwards search
+	downwards := current
+	downwards.direction = South
+	heap.Push(&open, &ultraCrucibleItem{crucible: downwards, estimatedCost: 0})
+
+	for current.pos != target || current.stepCount < 4 {
+		if current.stepCount >= 4 {
+			k := nodeKey{
+				pos:       current.pos,
+				direction: current.direction,
+				stepCount: current.stepCount,
+			}
+			closed[k] = current
 		}
-		closed[k] = current
 
 		possiblePaths := possibleUltraCruciblePaths(matrix, current)
-		fmt.Println(current)
+		// fmt.Println(current)
 		// fmt.Println(possiblePaths)
 		// fmt.Println()
 		for _, path := range possiblePaths {
@@ -263,8 +266,8 @@ func ultraAStar(matrix Matrix[int]) ultraCrucible {
 				stepCount = current.stepCount + 1
 			}
 
-			estimatedCost := int(aStarHeuristic(path.pos, target)) + traversalCost
-			// estimatedCost := traversalCost
+			// estimatedCost := int(aStarHeuristic(path.pos, target)) + traversalCost
+			estimatedCost := traversalCost
 
 			parent := current
 			newOpenNode := ultraCrucible{
@@ -329,6 +332,16 @@ func Test17Part1(t *testing.T) {
 }
 
 func Test17Part2Test(t *testing.T) {
+	matrix, err := InputIntoMatrix(part1Test17, IntParser)
+	AssertNoError(t, err, "InputIntoMatrix")
+
+	node := ultraAStar(matrix)
+	fmt.Println(matrix.String())
+	printCruciblePath(matrix, node)
+	AssertEquals(t, 94, node.heatLoss, "node")
+}
+
+func Test17Part2Test2(t *testing.T) {
 	matrix, err := InputIntoMatrix(part2Test17, IntParser)
 	AssertNoError(t, err, "InputIntoMatrix")
 
@@ -343,7 +356,8 @@ func Test17Part2(t *testing.T) {
 	AssertNoError(t, err, "InputIntoMatrix")
 
 	node := ultraAStar(matrix)
-	// fmt.Println(matrix.String())
-	// printCruciblePath(matrix, node)
-	AssertEquals(t, 94, node.heatLoss, "node")
+	fmt.Println(matrix.String())
+	printCruciblePath(matrix, node)
+	AssertEquals(t, 1283, node.heatLoss, "node")
+	// 1005 < answer < 1286
 }
