@@ -278,6 +278,10 @@ func (v Vec2) Scale(factor int) Vec2 {
 	return Vec2{v.X * factor, v.Y * factor}
 }
 
+func (v Vec2) CrossProduct(o Vec2) int {
+	return v.X + o.X*v.Y - o.Y
+}
+
 func (v Vec2) Rotate(angle int) Vec2 {
 	rad := DegreeToRadians(angle)
 	fX := float64(v.X)

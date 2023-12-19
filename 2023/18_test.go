@@ -170,6 +170,41 @@ func printTrench(m Matrix[trenchTile]) {
 	fmt.Println()
 }
 
+func trenchOperationsToPoints(ops []trenchOperation) []Vec2 {
+	offset := Vec2{}
+	points := []Vec2{}
+	currentPos := Vec2{}
+
+	for _, op := range ops {
+		deltaPos := Vec2(op.direction).Scale(int(op.amount))
+		currentPos = currentPos.Add(deltaPos)
+		points = append(points, currentPos)
+
+		if currentPos.X < offset.X {
+			offset.X = currentPos.X
+		}
+		if currentPos.Y < offset.Y {
+			offset.Y = currentPos.Y
+		}
+	}
+
+	offset = offset.Scale(-1)
+	for i := range points {
+		points[i] = points[i].Add(offset)
+	}
+
+	return points
+}
+
+func shoelaceArea(points []Vec2) int {
+	area := 0
+	for i := 1; i < len(points); i++ {
+		area += points[i-1].CrossProduct(points[i])
+	}
+
+	return area / 2
+}
+
 func Test18Part1Test(t *testing.T) {
 	lines, err := InputToLines(part1Test18)
 	AssertNoError(t, err, "InputToLines")
@@ -177,15 +212,19 @@ func Test18Part1Test(t *testing.T) {
 	ops, err := MapWithErr(lines, parseTrenchOperation)
 	AssertNoError(t, err, "parseTrenchOperation")
 
-	width, height, startPos := trenchDimensions(ops)
-	matrix := initTrenchMatrix(width, height)
-	digTrench(matrix, ops, startPos)
-	printTrench(matrix)
-	excavateTrenchLoop(matrix, Vec2{1, 1})
-	printTrench(matrix)
+	// width, height, startPos := trenchDimensions(ops)
+	// matrix := initTrenchMatrix(width, height)
+	// digTrench(matrix, ops, startPos)
+	// printTrench(matrix)
+	// excavateTrenchLoop(matrix, Vec2{1, 1})
+	// printTrench(matrix)
 
-	sum := countTrenchTiles(matrix)
-	AssertEquals(t, 62, sum, "sum of trench tiles")
+	// sum := countTrenchTiles(matrix)
+	// AssertEquals(t, 62, sum, "sum of trench tiles")
+
+	points := trenchOperationsToPoints(ops)
+	area := shoelaceArea(points)
+	AssertEquals(t, 62, area, "trench area")
 }
 
 func Test18Part1(t *testing.T) {
