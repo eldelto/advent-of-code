@@ -279,7 +279,7 @@ func (v Vec2) Scale(factor int) Vec2 {
 }
 
 func (v Vec2) CrossProduct(o Vec2) int {
-	return v.X + o.X*v.Y - o.Y
+	return v.X*o.Y - v.Y*o.X
 }
 
 func (v Vec2) Rotate(angle int) Vec2 {
@@ -426,6 +426,31 @@ func ParseMatrix(r io.Reader) Matrix[GenericTile] {
 	})
 
 	return matrix
+}
+
+func FloodFill[T any](m Matrix[T], pos Vec2, isBorder func(x T) bool, fill func(old T) T, done map[Vec2]struct{}) {
+	if _, ok := done[pos]; ok {
+		return
+	}
+
+	tile := m.Get(pos)
+	if isBorder(tile) {
+		return
+	}
+
+	m.Set(pos, fill(tile))
+	done[pos] = struct{}{}
+
+	positions := []Vec2{
+		pos.Add(Vec2(North)),
+		pos.Add(Vec2(East)),
+		pos.Add(Vec2(South)),
+		pos.Add(Vec2(West)),
+	}
+
+	for _, pos := range positions {
+		FloodFill(m, pos, isBorder, fill, done)
+	}
 }
 
 func Abs[T constraints.Integer](x T) uint {

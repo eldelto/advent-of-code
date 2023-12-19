@@ -20,7 +20,7 @@ type trenchOperation struct {
 func parseTrenchOperation(line string) (trenchOperation, error) {
 	parts := strings.Split(line, " ")
 
-	direction := North
+	var direction Direction
 	switch parts[0] {
 	case "U":
 		direction = North
@@ -47,131 +47,38 @@ func parseTrenchOperation(line string) (trenchOperation, error) {
 	}, nil
 }
 
-type trenchTile struct {
-	dugOut bool
-	color  string
-}
+func parseRealTrenchOperation(line string) (trenchOperation, error) {
+	parts := strings.Split(line, " ")
+	hex := strings.Trim(parts[2], "()")[1:]
 
-func (t *trenchTile) String() string {
-	if t.dugOut {
-		return "#"
+	var direction Direction
+	switch hex[len(hex)-1] {
+	case '0':
+		direction = East
+	case '1':
+		direction = South
+	case '2':
+		direction = West
+	case '3':
+		direction = North
+	default:
+		return trenchOperation{}, fmt.Errorf("failed to parse direction from %q", line)
 	}
 
-	return "."
-}
-
-func initTrenchMatrix(width, height int) Matrix[trenchTile] {
-	matrix := make(Matrix[trenchTile], height)
-	for ri := range matrix {
-		matrix[ri] = make([]trenchTile, width)
+	amount, err := strconv.ParseUint(hex[:len(hex)-1], 16, 64)
+	if err != nil {
+		return trenchOperation{},
+			fmt.Errorf("failed to parse direction amount from %q: %w", line, err)
 	}
 
-	return matrix
-}
-
-func trenchDimensions(ops []trenchOperation) (int, int, Vec2) {
-	leftCorner := Vec2{0, 0}
-	rightCorner := Vec2{0, 0}
-	currentPos := Vec2{}
-	for _, op := range ops {
-		for i := 0; i < int(op.amount); i++ {
-			currentPos = currentPos.Add(Vec2(op.direction))
-			if currentPos.X < leftCorner.X {
-				leftCorner.X = currentPos.X
-			}
-			if currentPos.Y < leftCorner.Y {
-				leftCorner.Y = currentPos.Y
-			}
-			if currentPos.X > rightCorner.X {
-				rightCorner.X = currentPos.X
-			}
-			if currentPos.Y > rightCorner.Y {
-				rightCorner.Y = currentPos.Y
-			}
-		}
-	}
-
-	return (rightCorner.X - leftCorner.X) + 1, (rightCorner.Y - leftCorner.Y) + 1, leftCorner.Scale(-1)
-}
-
-func digTrench(m Matrix[trenchTile], ops []trenchOperation, startPos Vec2) {
-	currentPos := startPos
-	for _, op := range ops {
-		tile := trenchTile{
-			dugOut: true,
-			color:  op.color,
-		}
-		m.Set(currentPos, tile)
-
-		for i := 0; i < int(op.amount); i++ {
-			currentPos = currentPos.Add(Vec2(op.direction))
-			m.Set(currentPos, tile)
-		}
-	}
-}
-
-func floodFill[T any](m Matrix[T], pos Vec2, isBorder func(x T) bool, fill func(old T) T, done map[Vec2]struct{}) {
-	if _, ok := done[pos]; ok {
-		return
-	}
-
-	tile := m.Get(pos)
-	if isBorder(tile) {
-		return
-	}
-
-	m.Set(pos, fill(tile))
-	done[pos] = struct{}{}
-
-	positions := []Vec2{
-		pos.Add(Vec2(North)),
-		pos.Add(Vec2(East)),
-		pos.Add(Vec2(South)),
-		pos.Add(Vec2(West)),
-	}
-
-	for _, pos := range positions {
-		floodFill(m, pos, isBorder, fill, done)
-	}
-}
-
-func excavateTrenchLoop(m Matrix[trenchTile], seed Vec2) {
-	done := map[Vec2]struct{}{}
-
-	floodFill(m, seed,
-		func(x trenchTile) bool { return x.dugOut },
-		func(old trenchTile) trenchTile {
-			old.dugOut = true
-			return old
-		},
-		done)
-}
-
-func countTrenchTiles(m Matrix[trenchTile]) int {
-	sum := 0
-	for _, row := range m {
-		for _, tile := range row {
-			if tile.dugOut {
-				sum++
-			}
-		}
-	}
-
-	return sum
-}
-
-func printTrench(m Matrix[trenchTile]) {
-	for ri, row := range m {
-		for ci := range row {
-			fmt.Print(m[ri][ci].String())
-		}
-		fmt.Println()
-	}
-	fmt.Println()
+	return trenchOperation{
+		direction: direction,
+		amount:    uint(amount),
+		color:     parts[2],
+	}, nil
 }
 
 func trenchOperationsToPoints(ops []trenchOperation) []Vec2 {
-	offset := Vec2{}
 	points := []Vec2{}
 	currentPos := Vec2{}
 
@@ -179,18 +86,6 @@ func trenchOperationsToPoints(ops []trenchOperation) []Vec2 {
 		deltaPos := Vec2(op.direction).Scale(int(op.amount))
 		currentPos = currentPos.Add(deltaPos)
 		points = append(points, currentPos)
-
-		if currentPos.X < offset.X {
-			offset.X = currentPos.X
-		}
-		if currentPos.Y < offset.Y {
-			offset.Y = currentPos.Y
-		}
-	}
-
-	offset = offset.Scale(-1)
-	for i := range points {
-		points[i] = points[i].Add(offset)
 	}
 
 	return points
@@ -205,6 +100,14 @@ func shoelaceArea(points []Vec2) int {
 	return area / 2
 }
 
+func trenchArea(ops []trenchOperation) int {
+	points := trenchOperationsToPoints(ops)
+	area := shoelaceArea(points)
+	border := Sum(Map(ops, func(o trenchOperation) int { return int(o.amount) }))
+
+	return area + border/2 + 1
+}
+
 func Test18Part1Test(t *testing.T) {
 	lines, err := InputToLines(part1Test18)
 	AssertNoError(t, err, "InputToLines")
@@ -212,18 +115,7 @@ func Test18Part1Test(t *testing.T) {
 	ops, err := MapWithErr(lines, parseTrenchOperation)
 	AssertNoError(t, err, "parseTrenchOperation")
 
-	// width, height, startPos := trenchDimensions(ops)
-	// matrix := initTrenchMatrix(width, height)
-	// digTrench(matrix, ops, startPos)
-	// printTrench(matrix)
-	// excavateTrenchLoop(matrix, Vec2{1, 1})
-	// printTrench(matrix)
-
-	// sum := countTrenchTiles(matrix)
-	// AssertEquals(t, 62, sum, "sum of trench tiles")
-
-	points := trenchOperationsToPoints(ops)
-	area := shoelaceArea(points)
+	area := trenchArea(ops)
 	AssertEquals(t, 62, area, "trench area")
 }
 
@@ -234,13 +126,28 @@ func Test18Part1(t *testing.T) {
 	ops, err := MapWithErr(lines, parseTrenchOperation)
 	AssertNoError(t, err, "parseTrenchOperation")
 
-	width, height, startPos := trenchDimensions(ops)
-	matrix := initTrenchMatrix(width, height)
-	digTrench(matrix, ops, startPos)
-	printTrench(matrix)
-	excavateTrenchLoop(matrix, Vec2{30, 10})
-	printTrench(matrix)
+	area := trenchArea(ops)
+	AssertEquals(t, 49578, area, "trench area")
+}
 
-	sum := countTrenchTiles(matrix)
-	AssertEquals(t, 49578, sum, "sum of trench tiles")
+func Test18Part2Test(t *testing.T) {
+	lines, err := InputToLines(part1Test18)
+	AssertNoError(t, err, "InputToLines")
+
+	ops, err := MapWithErr(lines, parseRealTrenchOperation)
+	AssertNoError(t, err, "parseTrenchOperation")
+
+	area := trenchArea(ops)
+	AssertEquals(t, 952408144115, area, "trench area")
+}
+
+func Test18Part2(t *testing.T) {
+	lines, err := InputToLines(input18)
+	AssertNoError(t, err, "InputToLines")
+
+	ops, err := MapWithErr(lines, parseRealTrenchOperation)
+	AssertNoError(t, err, "parseTrenchOperation")
+
+	area := trenchArea(ops)
+	AssertEquals(t, 52885384955882, area, "trench area")
 }
