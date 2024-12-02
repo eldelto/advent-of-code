@@ -12,7 +12,7 @@ var input01, part1Test01, part2Test01 = InputsForDay(1)
 func toLocationLists(lines []string)([]int, []int, error) {
 	var left, right []int
 	for _, line := range lines {
-		ints, err := StringToInts(line, "  ")
+		ints, err := StringToInts("  ")(line)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -31,17 +31,6 @@ func toLocationLists(lines []string)([]int, []int, error) {
 	return left, right, nil
 }
 
-func Contains[A comparable, B []A](value A, list B) uint {
-	var count uint
-	for _, other := range list {
-		if value == other {
-			count++
-		}
-	}
-
-	return count
-}
-
 func Test01Part1Test(t *testing.T) {
 	lines, err := InputToLines(part1Test01)
 	AssertNoError(t, err, "InputToLines")
@@ -51,7 +40,7 @@ func Test01Part1Test(t *testing.T) {
 
 	diff := ZipMap(left, right, func(l, r int) uint { return Abs(r - l) })
 	sum := Sum(diff)
-	AssertEquals(t, sum, uint(11), "Sum")
+	AssertEquals(t, uint(11), sum, "Sum")
 }
 
 func Test01Part1(t *testing.T) {
@@ -63,7 +52,7 @@ func Test01Part1(t *testing.T) {
 
 	diff := ZipMap(left, right, func(l, r int) uint { return Abs(r - l) })
 	sum := Sum(diff)
-	AssertEquals(t, sum, uint(3508942), "Sum")
+	AssertEquals(t, uint(3508942), sum, "Sum")
 }
 
 func Test01Part2Test(t *testing.T) {
@@ -76,7 +65,7 @@ func Test01Part2Test(t *testing.T) {
 	counts := Map(left, func(x int) uint { return Contains(x, right) })
 	score := ZipMap(left, counts, func(l int, c uint) int { return l*int(c) })
 	sum := Sum(score)
-	AssertEquals(t, sum, 31, "Sum")
+	AssertEquals(t, 31, sum, "Sum")
 }
 
 func Test01Part2(t *testing.T) {
@@ -89,5 +78,5 @@ func Test01Part2(t *testing.T) {
 	counts := Map(left, func(x int) uint { return Contains(x, right) })
 	score := ZipMap(left, counts, func(l int, c uint) int { return l*int(c) })
 	sum := Sum(score)
-	AssertEquals(t, sum, 31, "Sum")
+	AssertEquals(t, 26593248, sum, "Sum")
 }

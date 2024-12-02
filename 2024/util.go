@@ -41,7 +41,9 @@ func InputToLinesWithSeparator(name, separator string) ([]string, error) {
 		return nil, err
 	}
 
-	return strings.Split(string(content), separator), nil
+	return Filter(strings.Split(string(content), separator), func (s string) bool {
+		return s != ""
+	}), nil
 }
 
 func InputToLines(name string) ([]string, error) {
@@ -207,6 +209,17 @@ func ParallelMap[A, B any](a []A, f func(a A) B) []B {
 	return result
 }
 
+func Contains[A comparable, B []A](value A, list B) uint {
+	var count uint
+	for _, other := range list {
+		if value == other {
+			count++
+		}
+	}
+
+	return count
+}
+
 func StringToUInts(str, separator string) ([]uint, error) {
 	return StringsToUInts(strings.Split(str, separator))
 }
@@ -230,8 +243,10 @@ func StringsToUInts(strs []string) ([]uint, error) {
 	return result, nil
 }
 
-func StringToInts(str, separator string) ([]int, error) {
-	return StringsToInts(strings.Split(str, separator))
+func StringToInts(separator string) func (s string) ([]int, error) {
+	return func (s string) ([]int, error) {
+		return StringsToInts(strings.Split(s, separator))
+	}
 }
 
 func StringsToInts(strs []string) ([]int, error) {
