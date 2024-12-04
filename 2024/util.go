@@ -41,7 +41,7 @@ func InputToLinesWithSeparator(name, separator string) ([]string, error) {
 		return nil, err
 	}
 
-	return Filter(strings.Split(string(content), separator), func (s string) bool {
+	return Filter(strings.Split(string(content), separator), func(s string) bool {
 		return s != ""
 	}), nil
 }
@@ -243,8 +243,8 @@ func StringsToUInts(strs []string) ([]uint, error) {
 	return result, nil
 }
 
-func StringToInts(separator string) func (s string) ([]int, error) {
-	return func (s string) ([]int, error) {
+func StringToInts(separator string) func(s string) ([]int, error) {
+	return func(s string) ([]int, error) {
 		return StringsToInts(strings.Split(s, separator))
 	}
 }
@@ -317,10 +317,14 @@ func (v Vec2) ManhattenDistance(o Vec2) uint {
 type Direction Vec2
 
 var (
-	North = Direction{Y: -1}
-	East  = Direction{X: 1}
-	South = Direction{Y: 1}
-	West  = Direction{X: -1}
+	North     = Direction{Y: -1}
+	NorthEast = Direction{X: 1, Y: -1}
+	East      = Direction{X: 1}
+	SouthEast = Direction{X: 1, Y: 1}
+	South     = Direction{Y: 1}
+	SouthWest = Direction{X: -1, Y: 1}
+	West      = Direction{X: -1}
+	NorthWest = Direction{X: -1, Y: -1}
 )
 
 func DirectionFromPositions(src, dst Vec2) Direction {
@@ -430,6 +434,11 @@ func ParseIntoMatrix[T any](r io.Reader, f MatrixItemParser[T]) (Matrix[T], erro
 
 		matrix[row] = append(matrix[row], value)
 		column++
+	}
+
+	// Remove possible empty last row.
+	if len(matrix[len(matrix)-1]) == 0 {
+		matrix = matrix[:len(matrix)-1]
 	}
 
 	return matrix, nil

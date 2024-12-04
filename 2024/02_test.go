@@ -8,11 +8,11 @@ import (
 
 func IsIncreasing(l []int) (isIncreasing bool, maxStep int) {
 	for i := range l {
-		if i == 0{
+		if i == 0 {
 			continue
 		}
 
-		diff :=  l[i] - l[i-1]
+		diff := l[i] - l[i-1]
 		if diff <= 0 {
 			return false, maxStep
 		}
@@ -24,11 +24,11 @@ func IsIncreasing(l []int) (isIncreasing bool, maxStep int) {
 
 func IsDecreasing(l []int) (isIncreasing bool, maxStep int) {
 	for i := range l {
-		if i == 0{
+		if i == 0 {
 			continue
 		}
 
-		diff :=  l[i] - l[i-1]
+		diff := l[i] - l[i-1]
 		if diff >= 0 {
 			return false, maxStep
 		}
@@ -54,9 +54,9 @@ func isValidReport(report []int) bool {
 }
 
 func isValidReportWithDampener(report []int) bool {
-		if isValidReport(report) {
-			return true
-		}
+	if isValidReport(report) {
+		return true
+	}
 
 	for i := range report {
 		dampenedReport := make([]int, len(report))
@@ -67,7 +67,7 @@ func isValidReportWithDampener(report []int) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 

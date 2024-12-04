@@ -9,7 +9,7 @@ import (
 
 var input01, part1Test01, part2Test01 = InputsForDay(1)
 
-func toLocationLists(lines []string)([]int, []int, error) {
+func toLocationLists(lines []string) ([]int, []int, error) {
 	var left, right []int
 	for _, line := range lines {
 		ints, err := StringToInts("  ")(line)
@@ -63,7 +63,7 @@ func Test01Part2Test(t *testing.T) {
 	AssertNoError(t, err, "toLocationList")
 
 	counts := Map(left, func(x int) uint { return Contains(x, right) })
-	score := ZipMap(left, counts, func(l int, c uint) int { return l*int(c) })
+	score := ZipMap(left, counts, func(l int, c uint) int { return l * int(c) })
 	sum := Sum(score)
 	AssertEquals(t, 31, sum, "Sum")
 }
@@ -76,7 +76,7 @@ func Test01Part2(t *testing.T) {
 	AssertNoError(t, err, "toLocationList")
 
 	counts := Map(left, func(x int) uint { return Contains(x, right) })
-	score := ZipMap(left, counts, func(l int, c uint) int { return l*int(c) })
+	score := ZipMap(left, counts, func(l int, c uint) int { return l * int(c) })
 	sum := Sum(score)
 	AssertEquals(t, 26593248, sum, "Sum")
 }
