@@ -155,5 +155,5 @@ func Test04Part2(t *testing.T) {
 	AssertNoError(t, err, "InputToMatrix")
 
 	count := countXShapedMAS(matrix)
-	AssertEquals(t, 9, count, "XMAS count")
+	AssertEquals(t, 1945, count, "XMAS count")
 }
