@@ -132,4 +132,53 @@ defmodule AdventOfCode do
     |> Enum.map(&get_middle_page/1)
     |> Enum.sum()
   end
+
+  def concat_numbers(a, b) do
+	{number, _} = Integer.parse("#{a}#{b}")
+	number
+  end
+
+  def valid_equation?(expected, [number | tail]) do
+	valid_equation?(expected, tail, number)
+	end
+
+  def valid_equation?(expected, [], acc) do
+	expected == acc
+  end
+
+  def valid_equation?(expected, [number | tail], acc) do
+	if acc > expected do
+	  false
+	else
+	  valid_equation?(expected, tail, acc + number) or
+		valid_equation?(expected, tail, acc * number)
+	end
+  end
+
+  def day7_part1 do
+	{:ok, input} = File.read("inputs/07.txt")
+
+	equations = String.split(input, "\n")
+	|> Enum.filter(&(&1 != ""))
+	|> Enum.map(fn line ->
+	  [sum, numbers] = String.split(line, ": ")
+	  {sum, _} = Integer.parse(sum)
+
+	  numbers = String.split(numbers, " ")
+	  |> Enum.map(fn x ->
+		{int, _ } = Integer.parse(x)
+		int
+	  end)
+
+	  {sum, numbers}
+	end)
+
+	Stream.filter(equations, fn {expected, numbers} ->
+	  valid_equation?(expected, numbers)
+	  end)
+	|> Stream.map(fn {expected, _} -> expected end)
+	|> Enum.sum
+
+	# Result: 1545311493300
+  end
 end
