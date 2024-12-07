@@ -155,10 +155,26 @@ defmodule AdventOfCode do
 	end
   end
 
-  def day7_part1 do
-	{:ok, input} = File.read("inputs/07.txt")
+  def valid_equation2?(expected, [number | tail]) do
+	valid_equation2?(expected, tail, number)
+	end
 
-	equations = String.split(input, "\n")
+  def valid_equation2?(expected, [], acc) do
+	expected == acc
+  end
+
+  def valid_equation2?(expected, [number | tail], acc) do
+	if acc > expected do
+	  false
+	else
+	  valid_equation2?(expected, tail, acc + number) or
+		valid_equation2?(expected, tail, acc * number) or
+		valid_equation2?(expected, tail, concat_numbers(acc, number))
+	end
+  end
+
+  defp parse_equations(input) do
+	String.split(input, "\n")
 	|> Enum.filter(&(&1 != ""))
 	|> Enum.map(fn line ->
 	  [sum, numbers] = String.split(line, ": ")
@@ -172,9 +188,27 @@ defmodule AdventOfCode do
 
 	  {sum, numbers}
 	end)
+	end
+
+  def day7_part1 do
+	{:ok, input} = File.read("inputs/07.txt")
+	equations = parse_equations(input)
 
 	Stream.filter(equations, fn {expected, numbers} ->
 	  valid_equation?(expected, numbers)
+	  end)
+	|> Stream.map(fn {expected, _} -> expected end)
+	|> Enum.sum
+
+	# Result: 1545311493300
+  end
+
+  def day7_part2 do
+	{:ok, input} = File.read("inputs/07.txt")
+	equations = parse_equations(input)
+
+	Stream.filter(equations, fn {expected, numbers} ->
+	  valid_equation2?(expected, numbers)
 	  end)
 	|> Stream.map(fn {expected, _} -> expected end)
 	|> Enum.sum
