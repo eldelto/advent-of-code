@@ -364,6 +364,7 @@ func Green(msg string) string {
 
 type GenericTile struct {
 	symbol rune
+	pos    Vec2
 }
 
 type Matrix[T any] [][]T
@@ -381,6 +382,19 @@ func (m Matrix[T]) WithinBounds(pos Vec2) bool {
 		pos.X >= 0 && pos.X < len(m[0])
 }
 
+func (m Matrix[T]) Filter(f func(T) bool) []T {
+	result := []T{}
+	for _, line := range m {
+		for _, tile := range line {
+			if f(tile) {
+				result = append(result, tile)
+			}
+		}
+
+	}
+	return result
+}
+
 func (m Matrix[T]) String() string {
 	b := strings.Builder{}
 	for ri, row := range m {
@@ -396,7 +410,10 @@ func (m Matrix[T]) String() string {
 type MatrixItemParser[T any] func(r rune, row, column int) (T, error)
 
 func GenericTileParser(r rune, row, column int) (GenericTile, error) {
-	return GenericTile{r}, nil
+	return GenericTile{
+		symbol: r,
+		pos:    Vec2{X: row, Y: column},
+	}, nil
 }
 
 func IntParser(r rune, row, column int) (int, error) {
@@ -446,7 +463,10 @@ func ParseIntoMatrix[T any](r io.Reader, f MatrixItemParser[T]) (Matrix[T], erro
 
 func ParseMatrix(r io.Reader) Matrix[GenericTile] {
 	matrix, _ := ParseIntoMatrix(r, func(r rune, row, column int) (GenericTile, error) {
-		return GenericTile{r}, nil
+		return GenericTile{
+			symbol: r,
+			pos:    Vec2{X: row, Y: column},
+		}, nil
 	})
 
 	return matrix

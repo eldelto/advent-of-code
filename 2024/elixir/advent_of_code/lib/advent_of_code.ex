@@ -134,85 +134,86 @@ defmodule AdventOfCode do
   end
 
   def concat_numbers(a, b) do
-	{number, _} = Integer.parse("#{a}#{b}")
-	number
+    {number, _} = Integer.parse("#{a}#{b}")
+    number
   end
 
   def valid_equation?(expected, [number | tail]) do
-	valid_equation?(expected, tail, number)
-	end
+    valid_equation?(expected, tail, number)
+  end
 
   def valid_equation?(expected, [], acc) do
-	expected == acc
+    expected == acc
   end
 
   def valid_equation?(expected, [number | tail], acc) do
-	if acc > expected do
-	  false
-	else
-	  valid_equation?(expected, tail, acc + number) or
-		valid_equation?(expected, tail, acc * number)
-	end
+    if acc > expected do
+      false
+    else
+      valid_equation?(expected, tail, acc + number) or
+        valid_equation?(expected, tail, acc * number)
+    end
   end
 
   def valid_equation2?(expected, [number | tail]) do
-	valid_equation2?(expected, tail, number)
-	end
+    valid_equation2?(expected, tail, number)
+  end
 
   def valid_equation2?(expected, [], acc) do
-	expected == acc
+    expected == acc
   end
 
   def valid_equation2?(expected, [number | tail], acc) do
-	if acc > expected do
-	  false
-	else
-	  valid_equation2?(expected, tail, acc + number) or
-		valid_equation2?(expected, tail, acc * number) or
-		valid_equation2?(expected, tail, concat_numbers(acc, number))
-	end
+    if acc > expected do
+      false
+    else
+      valid_equation2?(expected, tail, acc + number) or
+        valid_equation2?(expected, tail, acc * number) or
+        valid_equation2?(expected, tail, concat_numbers(acc, number))
+    end
   end
 
   defp parse_equations(input) do
-	String.split(input, "\n")
-	|> Enum.filter(&(&1 != ""))
-	|> Enum.map(fn line ->
-	  [sum, numbers] = String.split(line, ": ")
-	  {sum, _} = Integer.parse(sum)
+    String.split(input, "\n")
+    |> Enum.filter(&(&1 != ""))
+    |> Enum.map(fn line ->
+      [sum, numbers] = String.split(line, ": ")
+      {sum, _} = Integer.parse(sum)
 
-	  numbers = String.split(numbers, " ")
-	  |> Enum.map(fn x ->
-		{int, _ } = Integer.parse(x)
-		int
-	  end)
+      numbers =
+        String.split(numbers, " ")
+        |> Enum.map(fn x ->
+          {int, _} = Integer.parse(x)
+          int
+        end)
 
-	  {sum, numbers}
-	end)
-	end
+      {sum, numbers}
+    end)
+  end
 
   def day7_part1 do
-	{:ok, input} = File.read("inputs/07.txt")
-	equations = parse_equations(input)
+    {:ok, input} = File.read("inputs/07.txt")
+    equations = parse_equations(input)
 
-	Stream.filter(equations, fn {expected, numbers} ->
-	  valid_equation?(expected, numbers)
-	  end)
-	|> Stream.map(fn {expected, _} -> expected end)
-	|> Enum.sum
+    Stream.filter(equations, fn {expected, numbers} ->
+      valid_equation?(expected, numbers)
+    end)
+    |> Stream.map(fn {expected, _} -> expected end)
+    |> Enum.sum()
 
-	# Result: 1545311493300
+    # Result: 1545311493300
   end
 
   def day7_part2 do
-	{:ok, input} = File.read("inputs/07.txt")
-	equations = parse_equations(input)
+    {:ok, input} = File.read("inputs/07.txt")
+    equations = parse_equations(input)
 
-	Stream.filter(equations, fn {expected, numbers} ->
-	  valid_equation2?(expected, numbers)
-	  end)
-	|> Stream.map(fn {expected, _} -> expected end)
-	|> Enum.sum
+    Stream.filter(equations, fn {expected, numbers} ->
+      valid_equation2?(expected, numbers)
+    end)
+    |> Stream.map(fn {expected, _} -> expected end)
+    |> Enum.sum()
 
-	# Result: 1545311493300
+    # Result: 1545311493300
   end
 end

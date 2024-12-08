@@ -18,9 +18,9 @@ func findGuard(matrix Matrix[GenericTile]) (guard, error) {
 	for y, line := range matrix {
 		for x, tile := range line {
 			if tile.symbol == '^' {
-				guard := guard {
-					pos: Vec2{X:x, Y:y},
-						dir: North,
+				guard := guard{
+					pos: Vec2{X: x, Y: y},
+					dir: North,
 				}
 				return guard, nil
 			}
@@ -41,7 +41,8 @@ func runGuardStep(guard *guard, field Matrix[GenericTile]) bool {
 	case '#':
 		guard.dir = guard.dir.Right()
 		return runGuardStep(guard, field)
-	default:guard.pos = nextPos
+	default:
+		guard.pos = nextPos
 	}
 
 	return true
@@ -49,7 +50,7 @@ func runGuardStep(guard *guard, field Matrix[GenericTile]) bool {
 
 func findVisitedTiles(guard *guard, field Matrix[GenericTile]) map[Vec2]struct{} {
 	visitedTiles := map[Vec2]struct{}{}
-		visitedTiles[guard.pos] = struct{}{}
+	visitedTiles[guard.pos] = struct{}{}
 
 	for runGuardStep(guard, field) {
 		visitedTiles[guard.pos] = struct{}{}
@@ -60,7 +61,7 @@ func findVisitedTiles(guard *guard, field Matrix[GenericTile]) map[Vec2]struct{}
 
 func makesGuardLoop(guard *guard, field Matrix[GenericTile]) bool {
 	visitedTiles := map[Vec2]struct{}{}
-		visitedTiles[guard.pos] = struct{}{}
+	visitedTiles[guard.pos] = struct{}{}
 
 	loopCounter := 0
 
@@ -93,7 +94,7 @@ func findGuardLoops(guard *guard, field Matrix[GenericTile]) int {
 		guard.dir = North
 
 		originalTile := field.Get(pos)
-		field.Set(pos, GenericTile{'#'})
+		field.Set(pos, GenericTile{symbol: '#'})
 
 		if makesGuardLoop(guard, field) {
 			loopCount++
@@ -146,5 +147,5 @@ func Test06Part2(t *testing.T) {
 	AssertNoError(t, err, "find guard")
 
 	loopCount := findGuardLoops(&guard, matrix)
-	AssertEquals(t, 6, loopCount, "loop count ")
+	AssertEquals(t, 1984, loopCount, "loop count ")
 }
