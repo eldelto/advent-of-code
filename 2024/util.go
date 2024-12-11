@@ -325,6 +325,8 @@ var (
 	SouthWest = Direction{X: -1, Y: 1}
 	West      = Direction{X: -1}
 	NorthWest = Direction{X: -1, Y: -1}
+
+	Directions = []Direction{North, East, South, West}
 )
 
 func DirectionFromPositions(src, dst Vec2) Direction {
@@ -365,6 +367,10 @@ func Green(msg string) string {
 type GenericTile struct {
 	symbol rune
 	pos    Vec2
+}
+
+func (t *GenericTile) String() string {
+	return fmt.Sprintf("'%c' (%d, %d)", t.symbol, t.pos.X, t.pos.Y)
 }
 
 type Matrix[T any] [][]T
@@ -412,7 +418,7 @@ type MatrixItemParser[T any] func(r rune, row, column int) (T, error)
 func GenericTileParser(r rune, row, column int) (GenericTile, error) {
 	return GenericTile{
 		symbol: r,
-		pos:    Vec2{X: row, Y: column},
+		pos:    Vec2{X: column, Y: row},
 	}, nil
 }
 
@@ -465,11 +471,23 @@ func ParseMatrix(r io.Reader) Matrix[GenericTile] {
 	matrix, _ := ParseIntoMatrix(r, func(r rune, row, column int) (GenericTile, error) {
 		return GenericTile{
 			symbol: r,
-			pos:    Vec2{X: row, Y: column},
+			pos:    Vec2{X: column, Y: row},
 		}, nil
 	})
 
 	return matrix
+}
+
+func TileNeighbours(matrix Matrix[GenericTile], pos Vec2) []GenericTile {
+	neighbours := []GenericTile{}
+	for _, dir := range Directions {
+		newPos := pos.Add(Vec2(dir))
+		if matrix.WithinBounds(newPos) {
+			neighbours = append(neighbours, matrix.Get(newPos))
+		}
+	}
+
+	return neighbours
 }
 
 func FloodFill[T any](m Matrix[T], pos Vec2, isBorder func(x T) bool, fill func(old T) T, done map[Vec2]struct{}) {

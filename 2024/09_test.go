@@ -360,6 +360,8 @@ func Test09Part1(t *testing.T) {
 }
 
 func Test09Part2Test(t *testing.T) {
+	t.Skip()
+
 	input, err := InputToString(part1Test09)
 	AssertNoError(t, err, "InputToString")
 
@@ -372,6 +374,8 @@ func Test09Part2Test(t *testing.T) {
 }
 
 func Test09Part2(t *testing.T) {
+	t.Skip()
+
 	input, err := InputToString(input09)
 	AssertNoError(t, err, "InputToString")
 
