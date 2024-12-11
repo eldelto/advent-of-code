@@ -15,7 +15,7 @@ var input09, part1Test09, part2Test09 = InputsForDay(9)
 
 type diskBlock struct {
 	free bool
-	id int
+	id   int
 	size uint
 }
 
@@ -30,12 +30,12 @@ func parseFileIDs(input string) []diskBlock {
 			continue
 		}
 
-		if i % 2 == 0 {
+		if i%2 == 0 {
 			// File
 			for i := 0; i < int(b); i++ {
 				result = append(result, diskBlock{
 					free: false,
-					id: fileID,
+					id:   fileID,
 				})
 			}
 			fileID++
@@ -63,23 +63,23 @@ func parseFileIDsIntoFreeList(input string) *freeList {
 			continue
 		}
 
-		if i % 2 == 0 {
+		if i%2 == 0 {
 			// File
 			if int(b) > 0 {
-			result.Append(diskBlock{
-				free: false,
-				id: fileID,
-				size: uint(b),
-			})
+				result.Append(diskBlock{
+					free: false,
+					id:   fileID,
+					size: uint(b),
+				})
 			}
 			fileID++
 		} else {
 			// Empty space
 			if int(b) > 0 {
-			result.Append(diskBlock{
-				free: true,
-				size: uint(b),
-			})
+				result.Append(diskBlock{
+					free: true,
+					size: uint(b),
+				})
 			}
 		}
 	}
@@ -90,7 +90,7 @@ func parseFileIDsIntoFreeList(input string) *freeList {
 func defragDiskBlocks(blocks []diskBlock) {
 	head := 0
 	tail := len(blocks) - 1
-	free := diskBlock{free:true}
+	free := diskBlock{free: true}
 	for head < tail {
 		for !blocks[head].free {
 			head++
@@ -109,9 +109,9 @@ func defragDiskBlocks(blocks []diskBlock) {
 }
 
 type linkedList[T any] struct {
-	next *linkedList[T]
+	next     *linkedList[T]
 	previous *linkedList[T]
-	value T
+	value    T
 }
 
 func NewLinkedList[T any](value T) *linkedList[T] {
@@ -135,7 +135,7 @@ func (l *linkedList[T]) At(index int) T {
 
 func (l *linkedList[T]) Last() *linkedList[T] {
 	node := l
-	for ;node.next != nil; node = node.next {
+	for ; node.next != nil; node = node.next {
 	}
 
 	return node
@@ -144,7 +144,7 @@ func (l *linkedList[T]) Last() *linkedList[T] {
 func (l *linkedList[T]) Len() int {
 	i := 0
 	node := l
-	for ;node.next != nil; node = node.next {
+	for ; node.next != nil; node = node.next {
 		i++
 	}
 
@@ -152,12 +152,12 @@ func (l *linkedList[T]) Len() int {
 }
 
 func (l *linkedList[T]) InsertAt(value T, index int) {
-	before := l.NodeAt(index-1)
+	before := l.NodeAt(index - 1)
 	after := before.next
 	newNode := &linkedList[T]{
-		next : after,
+		next:     after,
 		previous: before,
-		value: value,
+		value:    value,
 	}
 	before.next = newNode
 	after.previous = newNode
@@ -173,7 +173,7 @@ func (l *linkedList[T]) Append(value T) *linkedList[T] {
 	before := l.Last()
 	newNode := linkedList[T]{
 		previous: before,
-		value: value,
+		value:    value,
 	}
 	before.next = &newNode
 
@@ -181,19 +181,19 @@ func (l *linkedList[T]) Append(value T) *linkedList[T] {
 }
 
 func (l *linkedList[T]) All() iter.Seq[T] {
-    return func(yield func(T) bool) {
-node := l
-        for ; node.next != nil; node = node.next {
-            if !yield(node.value) {
-                return
-            }
-        }
+	return func(yield func(T) bool) {
+		node := l
+		for ; node.next != nil; node = node.next {
+			if !yield(node.value) {
+				return
+			}
+		}
 		yield(node.value)
-    }
+	}
 }
 
 type freeList struct {
-	head *linkedList[diskBlock]
+	head          *linkedList[diskBlock]
 	nextFreeBlock *linkedList[diskBlock]
 }
 
@@ -213,26 +213,26 @@ func allocateAndSplit(node *linkedList[diskBlock], block diskBlock) error {
 	if node.value.size < block.size {
 		return errors.New("free disk block is too small")
 	}
-	
+
 	if node.value.size == block.size {
 		node.value = block
 		return nil
 	}
 
-	remainingSpace := diskBlock {
+	remainingSpace := diskBlock{
 		free: true,
-			size: node.value.size - block.size,
-		}
+		size: node.value.size - block.size,
+	}
 	remainingSpaceNode := &linkedList[diskBlock]{
 		previous: node,
-		next: node.next,
-		value: remainingSpace,
+		next:     node.next,
+		value:    remainingSpace,
 	}
 	node.next = remainingSpaceNode
 	node.value = block
 
-	nextNode :=remainingSpaceNode.next 
-	if nextNode!= nil {
+	nextNode := remainingSpaceNode.next
+	if nextNode != nil {
 		nextNode.previous = remainingSpaceNode
 	}
 
@@ -263,23 +263,22 @@ func (l *freeList) Allocate(block diskBlock) (bool, error) {
 	return false, errors.New("no free space for allocation")
 }
 
-
 func (l *freeList) Checksum() int {
 	checksum := 0
 	pos := 0
 	for block := range l.head.All() {
 		for i := 0; i < int(block.size); i++ {
-			if pos % 80 == 0 {
+			if pos%80 == 0 {
 				fmt.Println()
 			}
 			//fmt.Print(block.id)
 			if block.free {
-			fmt.Print(".")
+				fmt.Print(".")
 			} else {
-			fmt.Print("X")
+				fmt.Print("X")
 			}
 
-			checksum += pos*block.id
+			checksum += pos * block.id
 			pos++
 		}
 	}
@@ -291,7 +290,7 @@ func defragWholeDiskBlocks(l *freeList) error {
 	lastAllocation := l.head.Last()
 	movedFiles := map[int]struct{}{}
 
-	for i := 0; i < 100000; i++{
+	for i := 0; i < 100000; i++ {
 		if lastAllocation == nil {
 			return nil
 		}

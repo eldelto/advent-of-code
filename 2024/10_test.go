@@ -10,7 +10,7 @@ import (
 var input10, part1Test10, part2Test10 = InputsForDay(10)
 
 func findTrailheads(field Matrix[GenericTile]) []GenericTile {
-	return field.Filter(func (t GenericTile) bool {
+	return field.Filter(func(t GenericTile) bool {
 		return t.symbol == '0'
 	})
 }
@@ -66,7 +66,7 @@ func findTrails(field Matrix[GenericTile], trailheads []GenericTile) int {
 	trails := 0
 	positions := trailheads
 	nextPositions := []GenericTile{}
-	for len(positions) > 1{
+	for len(positions) > 1 {
 		for _, path := range positions {
 			nextSteps := possibleTrailPaths(path, field)
 			nextPositions = append(nextPositions, nextSteps...)
@@ -121,5 +121,5 @@ func Test10Part2(t *testing.T) {
 	trailheads := findTrailheads(field)
 	paths := findTrails(field, trailheads)
 
-	AssertEquals(t, 81, paths, "trails")
+	AssertEquals(t, 928, paths, "trails")
 }
