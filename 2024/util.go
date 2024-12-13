@@ -396,9 +396,16 @@ func (m Matrix[T]) Filter(f func(T) bool) []T {
 				result = append(result, tile)
 			}
 		}
-
 	}
 	return result
+}
+
+func (m Matrix[T]) ForEach(f func(T)) {
+	for _, line := range m {
+		for _, tile := range line {
+			f(tile)
+		}
+	}
 }
 
 func (m Matrix[T]) String() string {
@@ -478,10 +485,19 @@ func ParseMatrix(r io.Reader) Matrix[GenericTile] {
 	return matrix
 }
 
-func TileNeighbours(matrix Matrix[GenericTile], pos Vec2) []GenericTile {
-	neighbours := []GenericTile{}
+func NeighbourPos[T any](matrix Matrix[T], pos Vec2) []Vec2 {
+	neighbours := []Vec2{}
 	for _, dir := range Directions {
 		newPos := pos.Add(Vec2(dir))
+		neighbours = append(neighbours, newPos)
+	}
+
+	return neighbours
+}
+
+func TileNeighbours(matrix Matrix[GenericTile], pos Vec2) []GenericTile {
+	neighbours := []GenericTile{}
+	for _, newPos := range NeighbourPos(matrix, pos) {
 		if matrix.WithinBounds(newPos) {
 			neighbours = append(neighbours, matrix.Get(newPos))
 		}
@@ -491,6 +507,10 @@ func TileNeighbours(matrix Matrix[GenericTile], pos Vec2) []GenericTile {
 }
 
 func FloodFill[T any](m Matrix[T], pos Vec2, isBorder func(x T) bool, fill func(old T) T, done map[Vec2]struct{}) {
+	if !m.WithinBounds(pos) {
+		return
+	}
+
 	if _, ok := done[pos]; ok {
 		return
 	}
