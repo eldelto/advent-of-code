@@ -293,6 +293,10 @@ func (v Vec2) Scale(factor int) Vec2 {
 	return Vec2{v.X * factor, v.Y * factor}
 }
 
+func (v Vec2) Div(factor int) Vec2 {
+	return Vec2{v.X / factor, v.Y / factor}
+}
+
 func (v Vec2) CrossProduct(o Vec2) int {
 	return v.X*o.Y - v.Y*o.X
 }
