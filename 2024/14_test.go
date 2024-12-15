@@ -12,7 +12,7 @@ import (
 var input14, part1Test14, part2Test14 = InputsForDay(14)
 
 type robot struct {
-	pos Vec2
+	pos      Vec2
 	velocity Vec2
 }
 
@@ -20,15 +20,15 @@ func parseVec2(data string) (Vec2, error) {
 	parts := strings.Split(data, ",")
 
 	x, err := strconv.Atoi(strings.TrimSpace(parts[0]))
-		if err != nil {
-			return Vec2{}, err
-		}
+	if err != nil {
+		return Vec2{}, err
+	}
 	y, err := strconv.Atoi(strings.TrimSpace(parts[1]))
-		if err != nil {
-			return Vec2{}, err
-		}
+	if err != nil {
+		return Vec2{}, err
+	}
 
-	return Vec2{X:x, Y:y}, nil
+	return Vec2{X: x, Y: y}, nil
 }
 
 func parseRobot(data string) robot {
@@ -42,7 +42,7 @@ func parseRobot(data string) robot {
 		panic(err)
 	}
 
-	return robot{pos:pos, velocity:velocity}
+	return robot{pos: pos, velocity: velocity}
 }
 
 func simulateRobot(r robot, bounds Vec2, seconds int) Vec2 {
@@ -99,7 +99,7 @@ func drawRobots(positions []Vec2, bounds Vec2) {
 }
 
 func Test14Part1Test(t *testing.T) {
-	data, err := InputToLines (part1Test14)
+	data, err := InputToLines(part1Test14)
 	AssertNoError(t, err, "InputToLines")
 
 	bounds := Vec2{X: 11, Y: 7}
@@ -114,7 +114,7 @@ func Test14Part1Test(t *testing.T) {
 }
 
 func Test14Part1(t *testing.T) {
-	data, err := InputToLines (input14)
+	data, err := InputToLines(input14)
 	AssertNoError(t, err, "InputToLines")
 
 	bounds := Vec2{X: 101, Y: 103}
@@ -129,7 +129,8 @@ func Test14Part1(t *testing.T) {
 }
 
 func Test14Part2(t *testing.T) {
-	data, err := InputToLines (input14)
+	t.Skip()
+	data, err := InputToLines(input14)
 	AssertNoError(t, err, "InputToLines")
 
 	bounds := Vec2{X: 101, Y: 103}
@@ -138,10 +139,10 @@ func Test14Part2(t *testing.T) {
 	// flat 33, 136, 239
 	// heigh 84, 185, 286
 
-	for i := 0; i < 10000; i+=101 {
-	positions := Map(robots, func(r robot) Vec2 {
-		return simulateRobot(r, bounds, 84+i)
-	})
+	for i := 0; i < 10000; i += 101 {
+		positions := Map(robots, func(r robot) Vec2 {
+			return simulateRobot(r, bounds, 84+i)
+		})
 		fmt.Println(i)
 		drawRobots(positions, bounds)
 		fmt.Println()

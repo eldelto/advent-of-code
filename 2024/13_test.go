@@ -66,25 +66,25 @@ func parseAllClawData(data string, offset int) (as, bs, prices []Vec2) {
 
 func playClaw(a, b, price Vec2, reversed bool) int {
 	priceIncline := float64(price.X) / float64(price.Y)
-	//reversed := b.X > a.X 
+	//reversed := b.X > a.X
 	pos := Vec2{}
 	cost := 0
 
 	for pos.X < price.X && pos.Y < price.Y {
-		if pos.Y == 0 || float64(pos.X) / float64(pos.Y) < priceIncline {
+		if pos.Y == 0 || float64(pos.X)/float64(pos.Y) < priceIncline {
 			if reversed {
-			pos = pos.Add(b)
+				pos = pos.Add(b)
 				cost += 1
 			} else {
-			pos = pos.Add(a)
+				pos = pos.Add(a)
 				cost += 3
 			}
 		} else {
 			if reversed {
-			pos = pos.Add(a)
+				pos = pos.Add(a)
 				cost += 3
 			} else {
-			pos = pos.Add(b)
+				pos = pos.Add(b)
 				cost += 1
 			}
 		}
@@ -106,7 +106,7 @@ func playClawGames(as, bs, prices []Vec2) int {
 	for i := range prices {
 		cost := playClaw(as[i], bs[i], prices[i], false)
 		if cost == 0 {
-		cost = playClaw(as[i], bs[i], prices[i], true)
+			cost = playClaw(as[i], bs[i], prices[i], true)
 		}
 		costs += cost
 	}
